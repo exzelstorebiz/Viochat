@@ -154,40 +154,38 @@
   let targetUid = null;
   let roomId = null;
 
-  // Ambil Parameter dari URL
+  // 1. Ambil Parameter dari URL dan Langsung Ubah Header
   const urlParams = new URLSearchParams(window.location.search);
   targetUid = urlParams.get('uid');
   const targetName = urlParams.get('name') || 'Kontak';
 
-  // Cek Login
+  // Ubah teks header secara langsung (tanpa menunggu Firebase selesai loading)
+  document.getElementById('chat-name').innerText = targetName;
+  document.getElementById('chat-avatar').innerText = targetName.charAt(0).toUpperCase();
+
+  // 2. Cek Login dan Jalankan Chat
   onAuthStateChanged(auth, (user) => {
     if (user) {
       currentUser = user;
       
-      // JIKA TIDAK ADA PARAMETER UID (baru login), LEMPAR KE HALAMAN KONTAK
       if (!targetUid) {
         window.location.href = "kontak.html";
         return;
       }
 
-      // Ubah nama di header chat
-      document.getElementById('chat-name').innerText = targetName;
-      document.getElementById('chat-avatar').innerText = targetName.charAt(0).toUpperCase();
-
-      // Buat Room ID Unik
+      // Buat ID Room
       roomId = [currentUser.uid, targetUid].sort().join("_");
+      console.log("Room ID:", roomId); // Untuk cek di console browser
       
       loadMessages();
     } else {
-  // Beri waktu 2 detik sebelum menendang ke login
-  setTimeout(() => {
-    if (!auth.currentUser) {
-      window.location.href = "vio-login.html";
+      setTimeout(() => {
+        if (!auth.currentUser) window.location.href = "vio-login.html";
+      }, 2000);
     }
-  }, 2000);
-}
   });
 
+  // 3. Tarik Pesan Real-time
   function loadMessages() {
     const msgContainer = document.getElementById('chat-messages');
     const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "asc"));
@@ -220,12 +218,19 @@
     });
   }
 
+  // 4. Fungsi Kirim Pesan (Dibuat global agar bisa dipanggil tombol HTML)
   window.sendMsg = async () => {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
-    if (!text || !currentUser || !roomId) return;
+    
+    // Cek apakah user dan room sudah siap
+    if (!text) return;
+    if (!currentUser || !roomId) {
+      alert("Sistem sedang memuat data, tunggu sebentar lalu coba lagi.");
+      return;
+    }
 
-    input.value = '';
+    input.value = ''; // Kosongkan input
 
     try {
       await addDoc(collection(db, "chats", roomId, "messages"), {
@@ -235,13 +240,14 @@
         createdAt: serverTimestamp()
       });
     } catch (error) {
-      console.error("Error: ", error);
-      alert("Gagal mengirim pesan.");
+      console.error("Gagal kirim:", error);
+      alert("Gagal mengirim pesan: " + error.message);
     }
   };
 
+  // Dukung tombol Enter
   document.getElementById('chatInput').addEventListener('keypress', e => {
-    if (e.key === 'Enter') sendMsg();
+    if (e.key === 'Enter') window.sendMsg();
   });
 </script>
 
