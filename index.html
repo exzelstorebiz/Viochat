@@ -8,9 +8,9 @@
 <style>
   :root {
     --violet-800: #5B21B6; --violet-700: #6D28D9; --violet-600: #7C3AED;
-    --violet-100: #EDE9FE; --violet-50:  #F5F3FF;
+    --violet-500: #8B5CF6; --violet-100: #EDE9FE; --violet-50:  #F5F3FF;
     --orange-700: #C2410C; --orange-600: #EA580C; --orange-500: #F97316;
-    --orange-100: #FFEDD5;
+    --orange-400: #FB923C; --orange-100: #FFEDD5;
     --text: #1F2937; --text-muted: #6B7280; --white: #FFFFFF; --green: #4ADE80;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -53,11 +53,12 @@
   .chat-item:hover { background: var(--violet-50); }
   
   .avatar-wrap { position: relative; flex-shrink: 0; }
+  
+  /* CSS Avatar Diperbaiki */
   .avatar { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 19px; color: white; }
   .avatar.v1 { background: linear-gradient(135deg, var(--violet-500), var(--violet-700)); }
   .avatar.v2 { background: linear-gradient(135deg, var(--orange-400), var(--orange-600)); }
-  .avatar.v1 { background: linear-gradient(135deg, var(--violet-500), var(--violet-700)); }
-  .avatar.v2 { background: linear-gradient(135deg, var(--orange-400), var(--orange-600)); }
+  
   .avatar-wrap.online .avatar { box-shadow: 0 0 0 2.5px var(--white), 0 0 0 4px var(--orange-500); }
   .online-badge { position: absolute; bottom: 1px; right: 1px; width: 14px; height: 14px; background: var(--green); border: 2.5px solid var(--white); border-radius: 50%; }
 
@@ -85,16 +86,15 @@
   <div class="app-header">
     <div class="header-top">
       <div>
-  <div class="app-title">
-    <span class="dot"></span>VioChat
-  </div>
-  <div style="font-size: 12px; font-weight: 500; opacity: 0.85; margin-left: 18px; margin-top: 2px;">
-    Chat Keluarga Mbah Papi
-  </div>
-</div>
+        <div class="app-title">
+          <span class="dot"></span>VioChat
+        </div>
+        <div style="font-size: 12px; font-weight: 500; opacity: 0.85; margin-left: 18px; margin-top: 2px;">
+          Chat Keluarga Mbah Papi
+        </div>
+      </div>
       <div class="header-actions">
         <span>📷</span>
-        <!-- Tombol Profil mengarah ke kontak untuk sementara -->
         <div class="profile-avatar" onclick="window.location.href='kontak.html'">U</div>
       </div>
     </div>
@@ -154,7 +154,6 @@
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
-      // Ubah inisial avatar profil
       document.querySelector('.profile-avatar').innerText = user.email.charAt(0).toUpperCase();
       await loadChatList();
     } else {
@@ -185,7 +184,8 @@
       contacts.forEach((contact, index) => {
         const name = contact.email ? contact.email.split('@')[0] : 'Tanpa Nama';
         const initial = name.charAt(0).toUpperCase();
-        // Selang-seling warna avatar
+        
+        // Logika Warna Avatar (Selang-seling)
         const avatarClass = index % 2 === 0 ? 'v1' : 'v2';
 
         const div = document.createElement('div');
