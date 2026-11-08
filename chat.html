@@ -119,37 +119,66 @@
   });
 
   // 4. LOAD PESAN
-  function loadMessages() {
-    const msgContainer = document.getElementById('chat-messages');
-    const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "asc"));
+  // 3. Tarik Pesan berdasarkan Room ID
+function loadMessages() {
+  const msgContainer = document.getElementById('chat-messages');
+  const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "asc"));
 
-    onSnapshot(q, (snapshot) => {
-      msgContainer.innerHTML = '<div class="date-divider">Hari ini</div>';
-      
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        const isMe = data.senderId === currentUser.uid;
+  onSnapshot(q, (snapshot) => {
+    msgContainer.innerHTML = ''; // Kosongkan layar
+    
+    let lastDateString = ""; // Untuk melacak pergantian hari
 
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `msg ${isMe ? 'sent' : 'received'}`;
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const isMe = data.senderId === currentUser.uid;
+
+      let timeStr = "Baru saja";
+      let dateLabel = "";
+
+      if (data.createdAt) {
+        const date = data.createdAt.toDate();
+        timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
         
-        let timeStr = "Baru saja";
-        if (data.createdAt) {
-          const date = data.createdAt.toDate();
-          timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+        // LOGIKA UNTUK LABEL TANGGAL
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+
+        if (date.toDateString() === today.toDateString()) {
+          dateLabel = "Hari ini";
+        } else if (date.toDateString() === yesterday.toDateString()) {
+          dateLabel = "Kemarin";
+        } else {
+          // Format: 12 Nov 2024
+          const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+          dateLabel = date.getDate() + " " + months[date.getMonth()] + " " + date.getFullYear();
         }
 
-        msgDiv.innerHTML = `
-          <div>${data.text}</div>
-          <div class="time">${timeStr}</div>
-        `;
-        
-        msgContainer.appendChild(msgDiv);
-      });
+        // Jika tanggal pesan berbeda dari pesan sebelumnya, buat pemisah baru
+        if (dateLabel !== lastDateString) {
+          const divider = document.createElement('div');
+          divider.className = 'date-divider';
+          divider.innerText = dateLabel;
+          msgContainer.appendChild(divider);
+          lastDateString = dateLabel;
+        }
+      }
 
-      msgContainer.scrollTop = msgContainer.scrollHeight;
+      // Render Bubble Pesan
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `msg ${isMe ? 'sent' : 'received'}`;
+      msgDiv.innerHTML = `
+        <div>${data.text}</div>
+        <div class="time">${timeStr}</div>
+      `;
+      msgContainer.appendChild(msgDiv);
     });
-  }
+
+    // Scroll ke bawah
+    msgContainer.scrollTop = msgContainer.scrollHeight;
+  });
+}
 
   // 5. KIRIM PESAN
   window.sendMsg = async () => {
