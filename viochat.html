@@ -178,8 +178,13 @@
       
       loadMessages();
     } else {
+  // Beri waktu 2 detik sebelum menendang ke login
+  setTimeout(() => {
+    if (!auth.currentUser) {
       window.location.href = "vio-login.html";
     }
+  }, 2000);
+}
   });
 
   function loadMessages() {
