@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VioChat - Kontak</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --violet-800: #5B21B6; --violet-600: #7C3AED; --violet-100: #EDE9FE; --violet-50: #F5F3FF;
+    --orange-600: #EA580C; --orange-500: #F97316; --orange-100: #FFEDD5;
+    --text: #1F2937; --text-muted: #6B7280; --white: #FFFFFF;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--violet-50); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
+  .phone { width: 100%; max-width: 420px; height: 90vh; max-height: 800px; background: var(--white); border-radius: 32px; overflow: hidden; box-shadow: 0 25px 60px -12px rgba(91, 33, 182, 0.35); display: flex; flex-direction: column; position: relative; }
+  
+  /* Header */
+  .app-header { background: linear-gradient(135deg, var(--violet-600) 0%, var(--violet-800) 100%); padding: 20px; color: white; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .app-title { font-size: 22px; font-weight: 700; }
+  .search-bar { background: rgba(255,255,255,0.18); border-radius: 24px; padding: 11px 16px; display: flex; align-items: center; gap: 10px; }
+  .search-bar input { flex: 1; border: none; background: transparent; outline: none; color: white; font-size: 14px; font-family: inherit; }
+  .search-bar input::placeholder { color: rgba(255,255,255,0.7); }
+
+  /* List Kontak */
+  .contact-list { flex: 1; overflow-y: auto; background: var(--white); padding: 8px 0; }
+  .contact-item { display: flex; align-items: center; gap: 14px; padding: 12px 20px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--violet-50); }
+  .contact-item:hover { background: var(--violet-50); }
+  .avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-500), var(--orange-600)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: white; flex-shrink: 0; }
+  .contact-info { flex: 1; min-width: 0; }
+  .contact-name { font-weight: 600; font-size: 15px; color: var(--text); }
+  .contact-phone { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  
+  .loading-text { text-align: center; color: var(--text-muted); padding: 20px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="app-header">
+    <div class="header-top">
+      <div class="app-title">Pilih Kontak</div>
+    </div>
+    <div class="search-bar">
+      <span>🔍</span>
+      <input type="text" id="searchInput" placeholder="Cari nomor HP atau email..." onkeyup="filterContacts()">
+    </div>
+  </div>
+
+  <div class="contact-list" id="contactList">
+    <div class="loading-text">Memuat kontak...</div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // --- GANTI DENGAN CONFIG ANDA ---
+  const firebaseConfig = {
+    apiKey: "AIzaSy...", authDomain: "viochat-2528a.firebaseapp.com",
+    projectId: "viochat-2528a", storageBucket: "viochat-2528a.appspot.com",
+    messagingSenderId: "296507148175", appId: "1:296507148175:web:abcdef"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let currentUser = null;
+  let allContacts = []; // Menyimpan data untuk fitur pencarian
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      await fetchContacts();
+    } else {
+      window.location.href = "vio-login.html";
+    }
+  });
+
+  async function fetchContacts() {
+    const listEl = document.getElementById('contactList');
+    try {
+      // Ambil semua data user dari Firestore
+      const querySnapshot = await getDocs(collection(db, "users"));
+      allContacts = [];
+      
+      querySnapshot.forEach((doc) => {
+        // Jangan tampilkan diri sendiri di daftar kontak
+        if (doc.id !== currentUser.uid) {
+          allContacts.push({ id: doc.id, ...doc.data() });
+        }
+      });
+
+      renderContacts(allContacts);
+    } catch (error) {
+      listEl.innerHTML = `<div class="loading-text">Gagal memuat kontak: ${error.message}</div>`;
+    }
+  }
+
+  function renderContacts(contacts) {
+    const listEl = document.getElementById('contactList');
+    if (contacts.length === 0) {
+      listEl.innerHTML = '<div class="loading-text">Tidak ada kontak ditemukan.</div>';
+      return;
+    }
+
+    listEl.innerHTML = '';
+    contacts.forEach(contact => {
+      const initial = contact.email ? contact.email.charAt(0).toUpperCase() : '?';
+      const name = contact.email ? contact.email.split('@')[0] : 'Tanpa Nama';
+      
+      const div = document.createElement('div');
+      div.className = 'contact-item';
+      // Ketika diklik, arahkan ke chat.html dengan membawa parameter ID dan Nama
+      div.onclick = () => {
+        window.location.href = `chat.html?uid=${contact.id}&name=${encodeURIComponent(name)}`;
+      };
+      
+      div.innerHTML = `
+        <div class="avatar">${initial}</div>
+        <div class="contact-info">
+          <div class="contact-name">${name}</div>
+          <div class="contact-phone">${contact.phoneNumber || 'Tidak ada nomor'}</div>
+        </div>
+      `;
+      listEl.appendChild(div);
+    });
+  }
+
+  // Fitur Pencarian
+  window.filterContacts = () => {
+    const keyword = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = allContacts.filter(c => 
+      (c.phoneNumber && c.phoneNumber.includes(keyword)) || 
+      (c.email && c.email.toLowerCase().includes(keyword))
+    );
+    renderContacts(filtered);
+  };
+</script>
+
+</body>
+</html>
