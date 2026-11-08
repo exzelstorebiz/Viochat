@@ -144,16 +144,16 @@
   let currentUser = null;
 
   // 1. Cek apakah user sudah login
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      currentUser = user;
-      loadMessages(); // Tarik pesan jika sudah login
-    } else {
-      // Jika belum login, tendang kembali ke halaman login
-      alert("Sesi berakhir. Silakan login kembali.");
-      window.location.href = "vio-login.html"; // Sesuaikan dengan nama file login Anda
-    }
-  });
+  // 1. Cek apakah user sudah login
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    loadMessages(); // Tarik pesan jika sudah login
+  } else {
+    // Hapus alert, langsung alihkan secara diam-diam (silent redirect)
+    window.location.href = "vio-login.html"; 
+  }
+});
 
   // 2. Fungsi Memuat Pesan Real-time dari Firestore
   function loadMessages() {
