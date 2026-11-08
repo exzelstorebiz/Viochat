@@ -116,28 +116,25 @@
   const db = getFirestore(app);
 
   let currentUser = null;
+  let chatDataStore = []; // Menyimpan data semua chat agar bisa di-sort ulang
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
       document.querySelector('.profile-avatar').innerText = user.email.charAt(0).toUpperCase();
-      await buildChatList();
+      await initChatList();
     } else {
       setTimeout(() => { if (!auth.currentUser) window.location.href = "vio-login.html"; }, 1500);
     }
   });
 
-  async function buildChatList() {
+  async function initChatList() {
     const container = document.getElementById('dynamic-contacts');
     try {
-      // 1. Ambil semua user/kontak
       const usersSnapshot = await getDocs(collection(db, "users"));
       let contacts = [];
-      
       usersSnapshot.forEach((doc) => {
-        if (doc.id !== currentUser.uid) {
-          contacts.push({ id: doc.id, ...doc.data() });
-        }
+        if (doc.id !== currentUser.uid) contacts.push({ id: doc.id, ...doc.data() });
       });
 
       document.getElementById('total-kontak').innerText = contacts.length;
@@ -147,73 +144,81 @@
         return;
       }
 
-      // 2. Ambil pesan terakhir secara berurutan (Promise.all)
-      let chatArray = [];
-      await Promise.all(contacts.map(async (contact) => {
+      // Inisialisasi awal untuk setiap kontak
+      for (const contact of contacts) {
         const roomId = [currentUser.uid, contact.id].sort().join("_");
-        let lastMessage = "Ketuk untuk mulai mengobrol...";
-        let lastTimeStr = "";
-        let lastTimestamp = 0;
-        let isUnread = false;
+        
+        // Tarik data awal (pesan terakhir & status baca)
+        const msgSnap = await getDocs(query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "desc"), limit(1)));
+        const readSnap = await getDoc(doc(db, "chats", roomId, "read_status", currentUser.uid));
+        
+        let initialData = processRoomData(contact, roomId, msgSnap, readSnap);
+        chatDataStore.push(initialData);
 
-        try {
-          const msgQuery = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "desc"), limit(1));
-          const msgSnap = await getDocs(msgQuery);
+        // DENGARKAN PERUBAHAN PESAN SECARA REAL-TIME UNTUK ROOM INI
+        const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "desc"), limit(1));
+        onSnapshot(q, async (snapshot) => {
+          // Ambil ulang status baca untuk memastikan akurasi
+          const latestReadSnap = await getDoc(doc(db, "chats", roomId, "read_status", currentUser.uid));
+          const updatedData = processRoomData(contact, roomId, snapshot, latestReadSnap);
+          
+          // Update data di tempat penyimpanan lokal
+          const index = chatDataStore.findIndex(c => c.contact.id === contact.id);
+          if (index !== -1) chatDataStore[index] = updatedData;
+          
+          // Gambar ulang layar
+          renderChatListUI();
+        });
+      }
 
-          if (!msgSnap.empty) {
-            const msgData = msgSnap.docs[0].data();
-            lastMessage = msgData.text;
-            
-            if (msgData.createdAt) {
-              const date = msgData.createdAt.toDate();
-              lastTimestamp = date.getTime();
-              const today = new Date();
-              if (date.toDateString() === today.toDateString()) {
-                lastTimeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-              } else {
-                lastTimeStr = date.getDate() + '/' + (date.getMonth()+1);
-              }
-            }
-
-            // Cek Status Dibaca
-            const readSnap = await getDoc(doc(db, "chats", roomId, "read_status", currentUser.uid));
-            let lastReadTime = readSnap.exists() && readSnap.data().lastReadAt ? readSnap.data().lastReadAt.toMillis() : 0;
-            
-            if (msgData.senderId !== currentUser.uid && lastTimestamp > lastReadTime) {
-              isUnread = true;
-            }
-          }
-        } catch (e) { console.log(e); }
-
-        chatArray.push({ contact, lastMessage, lastTimeStr, lastTimestamp, isUnread });
-      }));
-
-      // 3. Render & Urutkan
-      renderList(chatArray);
-
-      // 4. Dengarkan perubahan secara Real-time (Gunakan satu listener untuk koleksi chats)
-      onSnapshot(collection(db, "chats"), (snapshot) => {
-        let needUpdate = false;
-        // Jika ada perubahan pada data chats, kita picu build ulang daftar
-        // (Untuk skala kecil ini cukup, untuk skala besar perlu optimasi lebih lanjut)
-        if (snapshot.docChanges().length > 0) {
-           buildChatList(); 
-        }
-      });
+      // Gambar pertama kali
+      renderChatListUI();
 
     } catch (error) {
       container.innerHTML = `<div style="text-align: center; padding: 20px; color: red;">Gagal memuat: ${error.message}</div>`;
     }
   }
 
-  function renderList(chatArray) {
+  // Fungsi pembantu untuk mengekstrak data dari snapshot
+  function processRoomData(contact, roomId, msgSnapshot, readSnapshot) {
+    let lastMessage = "Ketuk untuk mulai mengobrol...";
+    let lastTimeStr = "";
+    let lastTimestamp = 0;
+    let isUnread = false;
+
+    if (!msgSnapshot.empty) {
+      const msgData = msgSnapshot.docs[0].data();
+      lastMessage = msgData.text;
+      
+      if (msgData.createdAt) {
+        const date = msgData.createdAt.toDate();
+        lastTimestamp = date.getTime();
+        const today = new Date();
+        if (date.toDateString() === today.toDateString()) {
+          lastTimeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+        } else {
+          lastTimeStr = date.getDate() + '/' + (date.getMonth()+1);
+        }
+      }
+
+      let lastReadTime = (readSnapshot.exists() && readSnapshot.data().lastReadAt) ? readSnapshot.data().lastReadAt.toMillis() : 0;
+      if (msgData.senderId !== currentUser.uid && lastTimestamp > lastReadTime) {
+        isUnread = true;
+      }
+    }
+
+    return { contact, lastMessage, lastTimeStr, lastTimestamp, isUnread };
+  }
+
+  // Fungsi untuk menggambar daftar ke HTML
+  function renderChatListUI() {
     const container = document.getElementById('dynamic-contacts');
     
-    // Urutkan dari yang paling baru
-    chatArray.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
+    // 1. Urutkan berdasarkan timestamp terbaru
+    chatDataStore.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
 
-    // Hitung Unread
-    let totalUnread = chatArray.filter(c => c.isUnread).length;
+    // 2. Hitung Total Belum Dibaca
+    let totalUnread = chatDataStore.filter(c => c.isUnread).length;
     const unreadBadge = document.getElementById('total-unread');
     if (totalUnread > 0) {
       unreadBadge.style.display = 'inline-block';
@@ -222,9 +227,9 @@
       unreadBadge.style.display = 'none';
     }
 
-    // Render HTML
+    // 3. Render HTML
     container.innerHTML = '';
-    chatArray.forEach((data, index) => {
+    chatDataStore.forEach((data, index) => {
       const avatarClass = index % 2 === 0 ? 'v1' : 'v2';
       const name = data.contact.email.split('@')[0];
       
