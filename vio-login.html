@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VioChat - Login</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #F5F3FF; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.15); width: 320px; }
+        h2 { color: #6D28D9; text-align: center; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #EDE9FE; border-radius: 10px; box-sizing: border-box; outline: none; }
+        input:focus { border-color: #7C3AED; }
+        button { width: 100%; padding: 12px; background: #7C3AED; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #6D28D9; }
+        .toggle { text-align: center; margin-top: 15px; font-size: 14px; color: #6B7280; cursor: pointer; }
+        .toggle span { color: #F97316; font-weight: bold; }
+        .hidden { display: none; }
+        #message { text-align: center; margin-top: 10px; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2 id="formTitle">Masuk</h2>
+    
+    <!-- Form Login -->
+    <div id="loginForm">
+        <input type="email" id="loginEmail" placeholder="Email">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button onclick="login()">Masuk</button>
+    </div>
+
+    <!-- Form Register -->
+    <div id="registerForm" class="hidden">
+        <input type="email" id="regEmail" placeholder="Email">
+        <input type="password" id="regPassword" placeholder="Password (min 6 karakter)">
+        <input type="tel" id="regPhone" placeholder="Nomor HP (contoh: 628123456789)">
+        <button onclick="register()">Daftar</button>
+    </div>
+
+    <div class="toggle" onclick="toggleMode()">
+        <span id="toggleText">Belum punya akun? Daftar</span>
+    </div>
+    <div id="message"></div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // GANTI DENGAN CONFIG ANDA
+    const firebaseConfig = {
+  apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
+  authDomain: "viochat-2528a.firebaseapp.com",
+  projectId: "viochat-2528a",
+  storageBucket: "viochat-2528a.firebasestorage.app",
+  messagingSenderId: "296507148175",
+  appId: "1:296507148175:web:933c3fd682999649726dfa",
+  measurementId: "G-3B8DYF9Z96"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // --- Logika UI ---
+    let isLoginMode = true;
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const formTitle = document.getElementById('formTitle');
+    const toggleText = document.getElementById('toggleText');
+    const messageEl = document.getElementById('message');
+
+    window.toggleMode = () => {
+        isLoginMode = !isLoginMode;
+        loginForm.classList.toggle('hidden');
+        registerForm.classList.toggle('hidden');
+        formTitle.innerText = isLoginMode ? 'Masuk' : 'Daftar';
+        toggleText.innerText = isLoginMode ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk';
+        messageEl.innerText = '';
+    };
+
+    // --- Register (Email + Simpan HP ke Firestore) ---
+    window.register = async () => {
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPassword').value;
+        const phone = document.getElementById('regPhone').value;
+
+        if (!email || !password || !phone) {
+            messageEl.innerText = 'Semua kolom wajib diisi.';
+            return;
+        }
+        messageEl.innerText = 'Memproses...';
+
+        try {
+            // 1. Buat akun di Firebase Auth (Email)
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // 2. Simpan Nomor HP ke Firestore (ID Dokumen = UID)
+            // Ini yang nanti dipakai untuk pencarian kontak
+            await setDoc(doc(db, "users", user.uid), {
+                email: email,
+                phoneNumber: phone, // Simpan nomor HP di sini
+                createdAt: new Date()
+            });
+
+            messageEl.innerText = 'Registrasi berhasil! Silakan masuk.';
+            messageEl.style.color = 'green';
+            toggleMode(); // Kembali ke form login
+            
+        } catch (error) {
+            messageEl.innerText = 'Error: ' + error.message;
+            messageEl.style.color = 'red';
+        }
+    };
+
+    // --- Login (Email) ---
+    window.login = async () => {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        
+        if (!email || !password) {
+            messageEl.innerText = 'Email dan password wajib diisi.';
+            return;
+        }
+        messageEl.innerText = 'Memproses...';
+
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            messageEl.innerText = 'Login berhasil! Mengalihkan...';
+            messageEl.style.color = 'green';
+            // Di sini Anda bisa mengalihkan ke halaman chat
+            // window.location.href = 'chat.html'; 
+        } catch (error) {
+            messageEl.innerText = 'Login gagal: ' + error.message;
+            messageEl.style.color = 'red';
+        }
+    };
+
+    // Cek status login (opsional)
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            console.log("User aktif:", user.email);
+            // Jika sudah login, bisa langsung arahkan ke chat
+        }
+    });
+</script>
+
+</body>
+</html>
