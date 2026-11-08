@@ -65,7 +65,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // --- GANTI DENGAN CONFIG ANDA ---
   const firebaseConfig = {
@@ -106,6 +106,9 @@
 
       // Buat ID Room (Urutkan agar A-B dan B-A hasilnya sama)
       roomId = [currentUser.uid, targetUid].sort().join("_");
+      // CATAT BAHWA ANDA SUDAH MEMBACA CHAT INI
+      const readRef = doc(db, "chats", roomId, "read_status", currentUser.uid);
+      setDoc(readRef, { lastReadAt: serverTimestamp() }, { merge: true });
       
       loadMessages();
     } else {
