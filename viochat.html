@@ -127,41 +127,56 @@
 
   // --- GANTI DENGAN CONFIG ANDA ---
   const firebaseConfig = {
-    apiKey: "AIzaSy...", // Sesuaikan dengan milik Anda
-    authDomain: "viochat-2528a.firebaseapp.com",
-    projectId: "viochat-2528a",
-    storageBucket: "viochat-2528a.appspot.com",
-    messagingSenderId: "296507148175",
-    appId: "1:296507148175:web:abcdef"
+    apiKey: "AIzaSy...", authDomain: "viochat-2528a.firebaseapp.com",
+    projectId: "viochat-2528a", storageBucket: "viochat-2528a.appspot.com",
+    messagingSenderId: "296507148175", appId: "1:296507148175:web:abcdef"
   };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // ID Room (Sementara kita pakai 1 room publik dulu)
-  const ROOM_ID = "room_utama"; 
   let currentUser = null;
+  let targetUid = null;
+  let roomId = null;
 
-  // 1. Cek apakah user sudah login
-  // 1. Cek apakah user sudah login
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    currentUser = user;
-    loadMessages(); // Tarik pesan jika sudah login
-  } else {
-    // Hapus alert, langsung alihkan secara diam-diam (silent redirect)
-    // window.location.href = "vio-login.html"; 
-  }
-});
+  // 1. Ambil Parameter dari URL (dikirim oleh halaman kontak)
+  const urlParams = new URLSearchParams(window.location.search);
+  targetUid = urlParams.get('uid');
+  const targetName = urlParams.get('name') || 'Kontak';
 
-  // 2. Fungsi Memuat Pesan Real-time dari Firestore
+  // Ubah nama di header chat
+  document.querySelector('.chat-header-name').innerText = targetName;
+  document.getElementById('chat-avatar').innerText = targetName.charAt(0).toUpperCase();
+
+  // 2. Cek Login
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      
+      if (!targetUid) {
+        alert("Pilih kontak terlebih dahulu dari halaman Kontak!");
+        window.location.href = "kontak.html";
+        return;
+      }
+
+      // Buat Room ID Unik: Gabungan UID pengirim dan penerima (diurutkan agar konsisten)
+      // Contoh: UID_Andi_UID_Rina (sama dengan UID_Rina_UID_Andi)
+      roomId = [currentUser.uid, targetUid].sort().join("_");
+      
+      loadMessages();
+    } else {
+      window.location.href = "vio-login.html";
+    }
+  });
+
+  // 3. Tarik Pesan berdasarkan Room ID
   function loadMessages() {
     const msgContainer = document.getElementById('chat-messages');
-    const q = query(collection(db, "chats", ROOM_ID, "messages"), orderBy("createdAt", "asc"));
+    const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "asc"));
 
     onSnapshot(q, (snapshot) => {
-      msgContainer.innerHTML = '<div class="date-divider">Hari ini</div>'; // Reset tampilan
+      msgContainer.innerHTML = '<div class="date-divider">Hari ini</div>';
       
       snapshot.forEach((doc) => {
         const data = doc.data();
@@ -170,18 +185,13 @@ onAuthStateChanged(auth, (user) => {
         const msgDiv = document.createElement('div');
         msgDiv.className = `msg ${isMe ? 'sent' : 'received'}`;
         
-        // Format Jam
         let timeStr = "Baru saja";
         if (data.createdAt) {
           const date = data.createdAt.toDate();
           timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
         }
 
-        // Tampilkan nama pengirim jika itu pesan orang lain
-        const senderName = !isMe ? `<div class="sender-name">${data.senderEmail.split('@')[0]}</div>` : '';
-
         msgDiv.innerHTML = `
-          ${senderName}
           <div>${data.text}</div>
           <div class="time">${timeStr}</div>
         `;
@@ -189,33 +199,31 @@ onAuthStateChanged(auth, (user) => {
         msgContainer.appendChild(msgDiv);
       });
 
-      // Scroll otomatis ke bawah
       msgContainer.scrollTop = msgContainer.scrollHeight;
     });
   }
 
-  // 3. Fungsi Kirim Pesan ke Firestore
+  // 4. Kirim Pesan
   window.sendMsg = async () => {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
-    if (!text || !currentUser) return;
+    if (!text || !currentUser || !roomId) return;
 
-    input.value = ''; // Kosongkan input
+    input.value = '';
 
     try {
-      await addDoc(collection(db, "chats", ROOM_ID, "messages"), {
+      await addDoc(collection(db, "chats", roomId, "messages"), {
         text: text,
         senderId: currentUser.uid,
         senderEmail: currentUser.email,
-        createdAt: serverTimestamp() // Waktu standar server Firebase
+        createdAt: serverTimestamp()
       });
     } catch (error) {
-      console.error("Error mengirim pesan: ", error);
-      alert("Gagal mengirim pesan. Pastikan aturan Firestore (Rules) sudah benar.");
+      console.error("Error: ", error);
+      alert("Gagal mengirim pesan.");
     }
   };
 
-  // Kirim dengan tombol Enter
   document.getElementById('chatInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') sendMsg();
   });
