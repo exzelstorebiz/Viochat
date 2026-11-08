@@ -64,16 +64,13 @@
 
   .chat-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
   .chat-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-  .chat-name { font-weight: 600; font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .chat-name.unread { color: var(--violet-800); }
+  .chat-name { font-weight: 500; font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-name.unread { font-weight: 700; color: var(--violet-800); }
   .chat-time { font-size: 11.5px; color: var(--text-muted); flex-shrink: 0; }
   .chat-time.unread { color: var(--orange-600); font-weight: 600; }
   .chat-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .chat-preview { font-size: 13.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-  .chat-preview.unread { color: var(--text); font-weight: 500; }
-  
-  .pinned-icon { color: var(--violet-600); font-size: 13px; margin-right: 4px; }
-  .unread-badge { background: linear-gradient(135deg, var(--orange-500), var(--orange-700)); color: white; font-size: 11px; font-weight: 700; min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 6px; }
+  .chat-preview.unread { color: var(--text); font-weight: 600; }
 
   /* FAB */
   .fab { position: absolute; bottom: 24px; right: 24px; width: 58px; height: 58px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-500), var(--orange-700)); border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4); z-index: 10; transition: transform 0.2s; }
@@ -106,20 +103,11 @@
 
   <div class="tabs">
     <div class="tab active">Semua <span class="badge" id="total-kontak">0</span></div>
-    <div class="tab">Belum Dibaca</div>
+    <div class="tab">Belum Dibaca <span class="badge" id="total-unread" style="display:none; background:var(--violet-600);">0</span></div>
     <div class="tab">Grup</div>
   </div>
 
   <div class="chat-list" id="chat-list-container">
-    <div class="section-label">📌 Disematkan</div>
-    <div class="chat-item" style="opacity: 0.6; pointer-events: none;">
-      <div class="avatar-wrap"><div class="avatar v1">A</div></div>
-      <div class="chat-content">
-        <div class="chat-top"><div class="chat-name">Andi Pratama</div><div class="chat-time">09:46</div></div>
-        <div class="chat-bottom"><div class="chat-preview">Udah, tinggal integrasi...</div></div>
-      </div>
-    </div>
-
     <div class="section-label" style="margin-top: 10px;">💬 Semua Chat</div>
     <div id="dynamic-contacts">
       <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">Memuat data...</div>
@@ -132,9 +120,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, query, orderBy, limit, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // --- KONFIGURASI FIREBASE ANDA ---
   const firebaseConfig = {
     apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
     authDomain: "viochat-2528a.firebaseapp.com",
@@ -151,95 +138,118 @@
 
   let currentUser = null;
 
-  // 1. Cek Login
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
       document.querySelector('.profile-avatar').innerText = user.email.charAt(0).toUpperCase();
-      await loadChatList(); // Jalankan fungsi memuat chat
+      await loadChatList();
     } else {
-      // Jeda sebelum tendang ke login (mencegah error saat loading)
-      setTimeout(() => {
-        if (!auth.currentUser) window.location.href = "vio-login.html";
-      }, 1500);
+      setTimeout(() => { if (!auth.currentUser) window.location.href = "vio-login.html"; }, 1500);
     }
   });
 
-  // 2. Fungsi Memuat Daftar Chat & Pesan Terakhir
   async function loadChatList() {
     const container = document.getElementById('dynamic-contacts');
     try {
-      // Ambil semua user untuk dijadikan daftar kontak
-      const querySnapshot = await getDocs(collection(db, "users"));
+      // Ambil semua user
+      const usersSnapshot = await getDocs(collection(db, "users"));
       let contacts = [];
       
-      querySnapshot.forEach((doc) => {
+      usersSnapshot.forEach((doc) => {
         if (doc.id !== currentUser.uid) {
           contacts.push({ id: doc.id, ...doc.data() });
         }
       });
 
-      // Update badge jumlah kontak
       document.getElementById('total-kontak').innerText = contacts.length;
 
       if (contacts.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">Belum ada kontak. Klik ikon pensil untuk mencari teman.</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">Belum ada kontak.</div>';
         return;
       }
 
-      container.innerHTML = '';
+      // Array untuk menampung data sebelum diurutkan
+      let chatListData = [];
+      let totalUnread = 0;
 
-      // Looping setiap kontak
-      for (let index = 0; index < contacts.length; index++) {
-        const contact = contacts[index];
+      // Looping setiap kontak untuk mencari pesan terakhir
+      for (let i = 0; i < contacts.length; i++) {
+        const contact = contacts[i];
         const name = contact.email ? contact.email.split('@')[0] : 'Tanpa Nama';
-        const initial = name.charAt(0).toUpperCase();
-        
-        // Selang-seling warna avatar
-        const avatarClass = index % 2 === 0 ? 'v1' : 'v2';
-
-        // Buat ID Room (Sama persis dengan logika di chat.html)
         const roomId = [currentUser.uid, contact.id].sort().join("_");
         
         let lastMessage = "Ketuk untuk mulai mengobrol...";
-        let lastTime = "Baru";
+        let lastTimeStr = "";
+        let lastTimestamp = 0; // Untuk sorting
         let isUnread = false;
 
-        // Cari pesan terakhir di Room tersebut
         try {
           const messagesRef = collection(db, "chats", roomId, "messages");
-          // Ambil 1 pesan paling akhir (descending)
           const q = query(messagesRef, orderBy("createdAt", "desc"), limit(1));
           const msgSnapshot = await getDocs(q);
 
           if (!msgSnapshot.empty) {
             const lastMsgData = msgSnapshot.docs[0].data();
             lastMessage = lastMsgData.text;
-            isUnread = true; // Beri efek tebal (unread) pada UI
             
-            // Format waktu (HH:MM atau Tanggal)
             if (lastMsgData.createdAt) {
               const date = lastMsgData.createdAt.toDate();
+              lastTimestamp = date.getTime();
               const today = new Date();
               
+              // Format Waktu
               if (date.toDateString() === today.toDateString()) {
-                lastTime = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+                lastTimeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
               } else {
-                lastTime = date.getDate() + '/' + (date.getMonth()+1);
+                lastTimeStr = date.getDate() + '/' + (date.getMonth()+1);
               }
             }
-          }
-        } catch (err) {
-          console.log("Gagal ambil pesan untuk:", name, err);
-        }
 
-        // Buat elemen HTML untuk ditampilkan
+            // CEK STATUS BELUM DIBACA
+            // Bandingkan waktu pesan terakhir dengan waktu terakhir Anda buka chat
+            const readRef = doc(db, "chats", roomId, "read_status", currentUser.uid);
+            const readSnap = await getDoc(readRef);
+            
+            let lastReadTime = 0;
+            if (readSnap.exists() && readSnap.data().lastReadAt) {
+              lastReadTime = readSnap.data().lastReadAt.toMillis();
+            }
+
+            // Jika pengirim pesan terakhir BUKAN Anda, dan waktunya lebih baru dari lastRead
+            if (lastMsgData.senderId !== currentUser.uid && lastTimestamp > lastReadTime) {
+              isUnread = true;
+              totalUnread++;
+            }
+          }
+        } catch (err) { console.log(err); }
+
+        chatListData.push({
+          contact, name, roomId, lastMessage, lastTimeStr, lastTimestamp, isUnread
+        });
+      }
+
+      // URUTKAN BERDASARKAN PESAN TERBARU (descending)
+      chatListData.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
+
+      // Update Badge Unread di Tab
+      const unreadBadge = document.getElementById('total-unread');
+      if (totalUnread > 0) {
+        unreadBadge.style.display = 'inline-block';
+        unreadBadge.innerText = totalUnread;
+      } else {
+        unreadBadge.style.display = 'none';
+      }
+
+      // Render ke HTML
+      container.innerHTML = '';
+      chatListData.forEach((data, index) => {
+        const avatarClass = index % 2 === 0 ? 'v1' : 'v2';
+        const initial = data.name.charAt(0).toUpperCase();
+
         const div = document.createElement('div');
         div.className = 'chat-item';
-        
-        // Arahkan ke chat.html (sesuai permintaan Anda)
         div.onclick = () => {
-          window.location.href = `chat.html?uid=${contact.id}&name=${encodeURIComponent(name)}`;
+          window.location.href = `chat.html?uid=${data.contact.id}&name=${encodeURIComponent(data.name)}`;
         };
         
         div.innerHTML = `
@@ -249,19 +259,19 @@
           </div>
           <div class="chat-content">
             <div class="chat-top">
-              <div class="chat-name ${isUnread ? 'unread' : ''}">${name}</div>
-              <div class="chat-time ${isUnread ? 'unread' : ''}">${lastTime}</div>
+              <div class="chat-name ${data.isUnread ? 'unread' : ''}">${data.name}</div>
+              <div class="chat-time ${data.isUnread ? 'unread' : ''}">${data.lastTimeStr}</div>
             </div>
             <div class="chat-bottom">
-              <div class="chat-preview ${isUnread ? 'unread' : ''}">${lastMessage}</div>
+              <div class="chat-preview ${data.isUnread ? 'unread' : ''}">${data.lastMessage}</div>
             </div>
           </div>
         `;
         container.appendChild(div);
-      }
+      });
 
     } catch (error) {
-      container.innerHTML = `<div style="text-align: center; padding: 20px; color: red; font-size: 14px;">Gagal memuat: ${error.message}</div>`;
+      container.innerHTML = `<div style="text-align: center; padding: 20px; color: red;">Gagal memuat: ${error.message}</div>`;
     }
   }
 </script>
