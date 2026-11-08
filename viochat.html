@@ -33,6 +33,16 @@
     padding: 16px 20px; color: white; display: flex; align-items: center; gap: 12px;
     flex-shrink: 0;
   }
+  
+  /* Tombol Back */
+  .back-btn {
+    font-size: 24px;
+    cursor: pointer;
+    padding-right: 8px;
+    display: flex;
+    align-items: center;
+  }
+
   .chat-header .avatar {
     width: 44px; height: 44px; border-radius: 50%;
     background: linear-gradient(135deg, var(--orange-400), var(--orange-600));
@@ -69,7 +79,6 @@
     color: white; border-radius: 18px 18px 4px 18px;
   }
   .msg .time { font-size: 10px; opacity: 0.7; margin-top: 4px; text-align: right; }
-  .msg .sender-name { font-size: 11px; font-weight: bold; color: var(--orange-600); margin-bottom: 2px; }
 
   /* Input Area */
   .chat-input-area {
@@ -99,15 +108,16 @@
 
 <div class="phone">
   <div class="chat-header">
+    <!-- Tombol Back ke kontak.html -->
+    <div class="back-btn" onclick="window.location.href='kontak.html'">‹</div>
     <div class="avatar" id="chat-avatar">V</div>
     <div class="chat-header-info">
-      <div class="chat-header-name">VioChat Room</div>
+      <div class="chat-header-name" id="chat-name">VioChat Room</div>
       <div class="chat-header-status"><span class="online-dot"></span> online</div>
     </div>
   </div>
 
   <div class="chat-messages" id="chat-messages">
-    <!-- Pesan akan muncul di sini -->
     <div class="date-divider">Memuat pesan...</div>
   </div>
 
@@ -140,28 +150,27 @@
   let targetUid = null;
   let roomId = null;
 
-  // 1. Ambil Parameter dari URL (dikirim oleh halaman kontak)
+  // Ambil Parameter dari URL
   const urlParams = new URLSearchParams(window.location.search);
   targetUid = urlParams.get('uid');
   const targetName = urlParams.get('name') || 'Kontak';
 
-  // Ubah nama di header chat
-  document.querySelector('.chat-header-name').innerText = targetName;
-  document.getElementById('chat-avatar').innerText = targetName.charAt(0).toUpperCase();
-
-  // 2. Cek Login
+  // Cek Login
   onAuthStateChanged(auth, (user) => {
     if (user) {
       currentUser = user;
       
+      // JIKA TIDAK ADA PARAMETER UID (baru login), LEMPAR KE HALAMAN KONTAK
       if (!targetUid) {
-        alert("Pilih kontak terlebih dahulu dari halaman Kontak!");
         window.location.href = "kontak.html";
         return;
       }
 
-      // Buat Room ID Unik: Gabungan UID pengirim dan penerima (diurutkan agar konsisten)
-      // Contoh: UID_Andi_UID_Rina (sama dengan UID_Rina_UID_Andi)
+      // Ubah nama di header chat
+      document.getElementById('chat-name').innerText = targetName;
+      document.getElementById('chat-avatar').innerText = targetName.charAt(0).toUpperCase();
+
+      // Buat Room ID Unik
       roomId = [currentUser.uid, targetUid].sort().join("_");
       
       loadMessages();
@@ -170,7 +179,6 @@
     }
   });
 
-  // 3. Tarik Pesan berdasarkan Room ID
   function loadMessages() {
     const msgContainer = document.getElementById('chat-messages');
     const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "asc"));
@@ -203,7 +211,6 @@
     });
   }
 
-  // 4. Kirim Pesan
   window.sendMsg = async () => {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
