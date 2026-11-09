@@ -17,13 +17,19 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Inter', sans-serif; background: var(--violet-50); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
   .phone { width: 100%; max-width: 420px; height: 90vh; max-height: 800px; background: var(--white); border-radius: 32px; overflow: hidden; box-shadow: 0 25px 60px -12px rgba(91, 33, 182, 0.35); display: flex; flex-direction: column; }
+  
   .chat-header { background: linear-gradient(135deg, var(--violet-600) 0%, var(--violet-800) 100%); padding: 16px 20px; color: white; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
   .back-btn { font-size: 24px; cursor: pointer; padding-right: 8px; display: flex; align-items: center; }
-  .chat-header .avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-400), var(--orange-600)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
-  .chat-header-info { flex: 1; }
-  .chat-header-name { font-weight: 600; font-size: 16px; }
+  
+  /* Avatar Header diperbarui */
+  .chat-header .avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-400), var(--orange-600)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; overflow: hidden; flex-shrink: 0; }
+  .chat-header .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  
+  .chat-header-info { flex: 1; min-width: 0; }
+  .chat-header-name { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chat-header-status { font-size: 12px; opacity: 0.85; display: flex; align-items: center; gap: 5px; }
   .online-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; }
+
   .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: var(--violet-50); }
   .date-divider { align-self: center; background: var(--violet-100); color: var(--violet-700); font-size: 11px; font-weight: 600; padding: 4px 14px; border-radius: 20px; margin: 8px 0; }
   .msg { max-width: 78%; padding: 10px 14px; font-size: 14.5px; line-height: 1.45; animation: pop 0.25s ease; display: flex; flex-direction: column; }
@@ -31,6 +37,7 @@
   .msg.received { align-self: flex-start; background: var(--white); border-radius: 18px 18px 18px 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
   .msg.sent { align-self: flex-end; background: linear-gradient(135deg, var(--violet-600), var(--violet-700)); color: white; border-radius: 18px 18px 4px 18px; }
   .msg .time { font-size: 10px; opacity: 0.7; margin-top: 4px; text-align: right; }
+
   .chat-input-area { padding: 12px 16px; background: var(--white); display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--violet-100); flex-shrink: 0; }
   .input-wrapper { flex: 1; background: var(--violet-100); border-radius: 24px; display: flex; align-items: center; padding: 4px 6px 4px 16px; }
   .input-wrapper input { flex: 1; border: none; background: transparent; outline: none; font-size: 14.5px; padding: 10px 0; color: var(--text); font-family: inherit; }
@@ -65,7 +72,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // --- GANTI DENGAN CONFIG ANDA ---
   const firebaseConfig = {
@@ -78,131 +85,130 @@
   measurementId: "G-3B8DYF9Z96"
   };
 
-  // 1. AMBIL PARAMETER URL & UBAH HEADER SAAT ITU JUGA
-  const urlParams = new URLSearchParams(window.location.search);
-  const targetUid = urlParams.get('uid');
-  const targetName = urlParams.get('name') || 'Kontak Baru';
-
-  document.getElementById('chat-name').innerText = targetName;
-  // Cek apakah kontak ini punya foto profil di database
-const targetDoc = await getDoc(doc(db, "users", targetUid));
-if(targetDoc.exists()) {
-    const tData = targetDoc.data();
-    const avatarEl = document.getElementById('chat-avatar');
-    if(tData.photoURL && tData.photoURL.trim() !== "") {
-        avatarEl.style.background = "transparent";
-        avatarEl.innerHTML = `<img src="${tData.photoURL}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-    } else {
-        avatarEl.innerText = targetName.charAt(0).toUpperCase();
-    }
-} else {
-    document.getElementById('chat-avatar').innerText = targetName.charAt(0).toUpperCase();
-}
-
-  // 2. INISIALISASI FIREBASE
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
   let currentUser = null;
+  let targetUid = null;
   let roomId = null;
 
-  // 3. CEK LOGIN
-  onAuthStateChanged(auth, (user) => {
+  // Ambil Parameter dari URL
+  const urlParams = new URLSearchParams(window.location.search);
+  targetUid = urlParams.get('uid');
+  const targetName = urlParams.get('name') || 'Kontak';
+
+  // Ubah nama kontak di header
+  document.getElementById('chat-name').innerText = targetName;
+
+  // Cek Login
+  onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
       
       if (!targetUid) {
-        window.location.href = "kontak.html";
+        window.location.href = "index.html";
         return;
       }
 
-      // Buat ID Room (Urutkan agar A-B dan B-A hasilnya sama)
+      // Buat ID Room
       roomId = [currentUser.uid, targetUid].sort().join("_");
-      // CATAT BAHWA ANDA SUDAH MEMBACA CHAT INI
+      
+      // Ambil data kontak untuk menampilkan foto profil di header
+      try {
+        const targetDoc = await getDoc(doc(db, "users", targetUid));
+        const avatarEl = document.getElementById('chat-avatar');
+        
+        if (targetDoc.exists()) {
+          const tData = targetDoc.data();
+          if (tData.photoURL && tData.photoURL.trim() !== "") {
+            avatarEl.style.background = "transparent";
+            avatarEl.innerHTML = `<img src="${tData.photoURL}" alt="${targetName}">`;
+          } else {
+            avatarEl.innerText = targetName.charAt(0).toUpperCase();
+          }
+        } else {
+          avatarEl.innerText = targetName.charAt(0).toUpperCase();
+        }
+      } catch (e) {
+        console.log("Gagal ambil foto profil", e);
+        document.getElementById('chat-avatar').innerText = targetName.charAt(0).toUpperCase();
+      }
+
+      // Catat status baca
       const readRef = doc(db, "chats", roomId, "read_status", currentUser.uid);
       setDoc(readRef, { lastReadAt: serverTimestamp() }, { merge: true });
-      
+
+      // Muat Pesan
       loadMessages();
+      
     } else {
       setTimeout(() => {
         if (!auth.currentUser) window.location.href = "vio-login.html";
-      }, 2000);
+      }, 1500);
     }
   });
 
-  // 4. LOAD PESAN
-  // 3. Tarik Pesan berdasarkan Room ID
-function loadMessages() {
-  const msgContainer = document.getElementById('chat-messages');
-  const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "asc"));
+  function loadMessages() {
+    const msgContainer = document.getElementById('chat-messages');
+    const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "asc"));
 
-  onSnapshot(q, (snapshot) => {
-    msgContainer.innerHTML = ''; // Kosongkan layar
-    
-    let lastDateString = ""; // Untuk melacak pergantian hari
+    onSnapshot(q, (snapshot) => {
+      msgContainer.innerHTML = '';
+      
+      let lastDateString = "";
 
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      const isMe = data.senderId === currentUser.uid;
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        const isMe = data.senderId === currentUser.uid;
 
-      let timeStr = "Baru saja";
-      let dateLabel = "";
+        let timeStr = "Baru saja";
+        let dateLabel = "";
 
-      if (data.createdAt) {
-        const date = data.createdAt.toDate();
-        timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-        
-        // LOGIKA UNTUK LABEL TANGGAL
-        const today = new Date();
-        const yesterday = new Date();
-        yesterday.setDate(today.getDate() - 1);
+        if (data.createdAt) {
+          const date = data.createdAt.toDate();
+          timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+          
+          const today = new Date();
+          const yesterday = new Date();
+          yesterday.setDate(today.getDate() - 1);
 
-        if (date.toDateString() === today.toDateString()) {
-          dateLabel = "Hari ini";
-        } else if (date.toDateString() === yesterday.toDateString()) {
-          dateLabel = "Kemarin";
-        } else {
-          // Format: 12 Nov 2024
-          const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
-          dateLabel = date.getDate() + " " + months[date.getMonth()] + " " + date.getFullYear();
+          if (date.toDateString() === today.toDateString()) {
+            dateLabel = "Hari ini";
+          } else if (date.toDateString() === yesterday.toDateString()) {
+            dateLabel = "Kemarin";
+          } else {
+            const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+            dateLabel = date.getDate() + " " + months[date.getMonth()] + " " + date.getFullYear();
+          }
+
+          if (dateLabel !== lastDateString) {
+            const divider = document.createElement('div');
+            divider.className = 'date-divider';
+            divider.innerText = dateLabel;
+            msgContainer.appendChild(divider);
+            lastDateString = dateLabel;
+          }
         }
 
-        // Jika tanggal pesan berbeda dari pesan sebelumnya, buat pemisah baru
-        if (dateLabel !== lastDateString) {
-          const divider = document.createElement('div');
-          divider.className = 'date-divider';
-          divider.innerText = dateLabel;
-          msgContainer.appendChild(divider);
-          lastDateString = dateLabel;
-        }
-      }
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `msg ${isMe ? 'sent' : 'received'}`;
+        msgDiv.innerHTML = `
+          <div>${data.text}</div>
+          <div class="time">${timeStr}</div>
+        `;
+        msgContainer.appendChild(msgDiv);
+      });
 
-      // Render Bubble Pesan
-      const msgDiv = document.createElement('div');
-      msgDiv.className = `msg ${isMe ? 'sent' : 'received'}`;
-      msgDiv.innerHTML = `
-        <div>${data.text}</div>
-        <div class="time">${timeStr}</div>
-      `;
-      msgContainer.appendChild(msgDiv);
+      msgContainer.scrollTop = msgContainer.scrollHeight;
     });
+  }
 
-    // Scroll ke bawah
-    msgContainer.scrollTop = msgContainer.scrollHeight;
-  });
-}
-
-  // 5. KIRIM PESAN
   window.sendMsg = async () => {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
     
-    if (!text) return;
-    if (!currentUser || !roomId) {
-      alert("Sistem sedang bersiap, tunggu sebentar...");
-      return;
-    }
+    if (!text || !currentUser || !roomId) return;
 
     input.value = '';
 
@@ -215,7 +221,7 @@ function loadMessages() {
       });
     } catch (error) {
       console.error("Gagal kirim:", error);
-      alert("Gagal mengirim pesan: " + error.message);
+      alert("Gagal mengirim pesan.");
     }
   };
 
