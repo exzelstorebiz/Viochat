@@ -242,17 +242,29 @@
   const text = input.value.trim();
   
   if (!text || !currentUser || !roomId) return;
-
   input.value = '';
 
   try {
+    // 1. Simpan pesan utama
     await addDoc(collection(db, "chats", roomId, "messages"), {
       text: text,
       senderId: currentUser.uid,
       senderEmail: currentUser.email,
       createdAt: serverTimestamp(),
-      isRead: false // <-- TAMBAHAN: Pesan baru belum dibaca
+      isRead: false
     });
+
+    // 2. Simpan RINGKASAN ke koleksi 'last_messages' (Kunci utama optimasi)
+    const summaryId = [currentUser.uid, targetUid].sort().join("_");
+    await setDoc(doc(db, "last_messages", summaryId), {
+      roomId: roomId,
+      senderId: currentUser.uid,
+      senderName: currentUser.email.split('@')[0], // Sementara pakai email
+      text: text,
+      updatedAt: serverTimestamp(),
+      isRead: false // Status baca ringkasan
+    }, { merge: true });
+
   } catch (error) {
     console.error("Gagal kirim:", error);
     alert("Gagal mengirim pesan.");
