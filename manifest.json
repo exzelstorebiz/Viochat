@@ -1,7 +1,8 @@
 {
   "name": "VioChat",
   "short_name": "VioChat",
-  "start_url": "index.html",
+  "start_url": ".",
+  "scope": "."
   "display": "standalone",
   "background_color": "#F5F3FF",
   "theme_color": "#7C3AED",
