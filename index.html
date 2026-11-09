@@ -122,8 +122,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+  import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy, limit, onSnapshot, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  
   const firebaseConfig = {
   apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
   authDomain: "viochat-2528a.firebaseapp.com",
@@ -135,8 +135,17 @@
   };
 
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// AKTIFKAN CACHE OFFLINE UNTUK MENGHEMAT KUOTA BACA
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    console.log("Cache offline gagal: Aplikasi terbuka di banyak tab.");
+  } else if (err.code == 'unimplemented') {
+    console.log("Cache offline tidak didukung oleh browser ini.");
+  }
+});
 
   let currentUser = null;
   let chatDataStore = [];
