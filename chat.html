@@ -84,7 +84,20 @@
   const targetName = urlParams.get('name') || 'Kontak Baru';
 
   document.getElementById('chat-name').innerText = targetName;
-  document.getElementById('chat-avatar').innerText = targetName.charAt(0).toUpperCase();
+  // Cek apakah kontak ini punya foto profil di database
+const targetDoc = await getDoc(doc(db, "users", targetUid));
+if(targetDoc.exists()) {
+    const tData = targetDoc.data();
+    const avatarEl = document.getElementById('chat-avatar');
+    if(tData.photoURL && tData.photoURL.trim() !== "") {
+        avatarEl.style.background = "transparent";
+        avatarEl.innerHTML = `<img src="${tData.photoURL}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+    } else {
+        avatarEl.innerText = targetName.charAt(0).toUpperCase();
+    }
+} else {
+    document.getElementById('chat-avatar').innerText = targetName.charAt(0).toUpperCase();
+}
 
   // 2. INISIALISASI FIREBASE
   const app = initializeApp(firebaseConfig);
