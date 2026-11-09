@@ -124,7 +124,19 @@
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
-      document.querySelector('.profile-avatar').innerText = user.email.charAt(0).toUpperCase();
+      // Ambil data user untuk ditampilkan di header
+const userDoc = await getDoc(doc(db, "users", user.uid));
+if (userDoc.exists()) {
+  const data = userDoc.data();
+  const avatarEl = document.getElementById('header-avatar');
+  
+  if (data.photoURL && data.photoURL.trim() !== "") {
+    avatarEl.style.background = "transparent";
+    avatarEl.innerHTML = `<img src="${data.photoURL}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+  } else {
+    avatarEl.innerText = data.displayName ? data.displayName.charAt(0).toUpperCase() : 'U';
+  }
+}
       await initChatList();
     } else {
       setTimeout(() => { if (!auth.currentUser) window.location.href = "vio-login.html"; }, 1500);
