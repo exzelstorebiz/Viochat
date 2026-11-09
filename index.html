@@ -260,6 +260,12 @@
       container.appendChild(div);
     });
   }
+
+  // Daftarkan Service Worker untuk PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+  
 </script>
 
 </body>
