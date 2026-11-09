@@ -223,15 +223,21 @@
     });
 
     // JIKA ADA PESAN MASUK YANG BELUM DIBACA, UBAH JADI TERBACA
-    if (hasUnreadMessages) {
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.senderId !== currentUser.uid && data.isRead === false) {
-          // Perbarui database di latar belakang
-          updateDoc(doc(db, "chats", roomId, "messages", docSnap.id), { isRead: true });
-        }
-      });
+if (hasUnreadMessages) {
+  // 1. Tandai pesan di dalam room sebagai terbaca
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    if (data.senderId !== currentUser.uid && data.isRead === false) {
+      updateDoc(doc(db, "chats", roomId, "messages", docSnap.id), { isRead: true });
     }
+  });
+
+  // 2. Tandai ringkasan di last_messages sebagai terbaca
+  // Ini yang akan menghilangkan status tebal di index.html
+  const summaryId = [currentUser.uid, targetUid].sort().join("_");
+  updateDoc(doc(db, "last_messages", summaryId), { isRead: true })
+    .catch(err => console.log("Gagal update status ringkasan:", err));
+}
 
     msgContainer.scrollTop = msgContainer.scrollHeight;
   });
