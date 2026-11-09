@@ -180,30 +180,40 @@ enableIndexedDbPersistence(db).catch((err) => {
   });
 
   async function initChatList() {
-    const container = document.getElementById('dynamic-contacts');
-    try {
-      const usersSnapshot = await getDocs(collection(db, "users"));
-      let contacts = [];
-      usersSnapshot.forEach((doc) => {
-        if (doc.id !== currentUser.uid) contacts.push({ id: doc.id, ...doc.data() });
-      });
+  const container = document.getElementById('dynamic-contacts');
+  try {
+    // 1. Ambil semua kontak
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    let contacts = [];
+    usersSnapshot.forEach((doc) => {
+      if (doc.id !== currentUser.uid) contacts.push({ id: doc.id, ...doc.data() });
+    });
 
-      document.getElementById('total-kontak').innerText = contacts.length;
+    document.getElementById('total-kontak').innerText = contacts.length;
 
-      if (contacts.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">Belum ada kontak.</div>';
-        return;
-      }
+    if (contacts.length === 0) {
+      container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">Belum ada kontak.</div>';
+      return;
+    }
 
-      for (const contact of contacts) {
-        const roomId = [currentUser.uid, contact.id].sort().join("_");
-        
+    // 2. SIAPKAN WADAH UNTUK MENAMPUNG SEMUA PERMINTAAN
+    let promises = [];
+
+    // 3. LOOPING CEPAT UNTUK MEMBUAT PERMINTAAN (TANPA MENUNGGU)
+    for (const contact of contacts) {
+      const roomId = [currentUser.uid, contact.id].sort().join("_");
+      
+      // Buat janji (promise) untuk mengambil pesan terakhir dan status baca
+      const promise = (async () => {
         const msgSnap = await getDocs(query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "desc"), limit(1)));
         const readSnap = await getDoc(doc(db, "chats", roomId, "read_status", currentUser.uid));
         
         let initialData = processRoomData(contact, roomId, msgSnap, readSnap);
+        
+        // Simpan ke tempat penyimpanan lokal
         chatDataStore.push(initialData);
 
+        // Pasang pendengar onSnapshot
         const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "desc"), limit(1));
         onSnapshot(q, async (snapshot) => {
           const latestReadSnap = await getDoc(doc(db, "chats", roomId, "read_status", currentUser.uid));
@@ -214,14 +224,21 @@ enableIndexedDbPersistence(db).catch((err) => {
           
           renderChatListUI();
         });
-      }
+      })();
 
-      renderChatListUI();
-
-    } catch (error) {
-      container.innerHTML = `<div style="text-align: center; padding: 20px; color: red;">Gagal memuat: ${error.message}</div>`;
+      promises.push(promise);
     }
+
+    // 4. TUNGGU SEMUA PERMINTAAN SELESAI SECARA BERSAMAAN
+    await Promise.all(promises);
+
+    // 5. TAMPILKAN HASILNYA KE LAYAR
+    renderChatListUI();
+
+  } catch (error) {
+    container.innerHTML = `<div style="text-align: center; padding: 20px; color: red;">Gagal memuat: ${error.message}</div>`;
   }
+}
 
   function processRoomData(contact, roomId, msgSnapshot, readSnapshot) {
     let lastMessage = "Ketuk untuk mulai mengobrol...";
