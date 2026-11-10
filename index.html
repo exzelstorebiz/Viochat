@@ -50,7 +50,28 @@
   .avatar.v1 { background: linear-gradient(135deg, var(--violet-500), var(--violet-700)); }
   .avatar.v2 { background: linear-gradient(135deg, var(--orange-400), var(--orange-600)); }
   .avatar-wrap.online .avatar { box-shadow: 0 0 0 2.5px var(--white), 0 0 0 4px var(--orange-500); }
-  .online-badge { position: absolute; bottom: 1px; right: 1px; width: 14px; height: 14px; background: var(--green); border: 2.5px solid var(--white); border-radius: 50%; }
+  
+  /* === ANIMASI TITIK HIJAU BERKEDIP === */
+  .online-badge { 
+    position: absolute; 
+    bottom: 1px; right: 1px; 
+    width: 14px; height: 14px; 
+    background: var(--green); 
+    border: 2.5px solid var(--white); 
+    border-radius: 50%; 
+    display: none; /* Disembunyikan secara default */
+  }
+  
+  .online-badge.active {
+    display: block;
+    animation: flashGreen 1.5s infinite ease-in-out;
+  }
+
+  @keyframes flashGreen {
+    0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+  }
 
   .chat-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
   .chat-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
@@ -82,7 +103,6 @@
       </div>
       <div class="header-actions">
         <span>📷</span>
-        <!-- ID ditambahkan agar bisa diubah oleh JS -->
         <div class="profile-avatar" id="my-profile-avatar" onclick="window.location.href='profil.html'">U</div>
       </div>
     </div>
@@ -107,20 +127,19 @@
 
   <button class="fab" onclick="window.location.href='kontak.html'">✎</button>
 </div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // --- KONFIGURASI FIREBASE ANDA ---
   const firebaseConfig = {
-  apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
-  authDomain: "viochat-2528a.firebaseapp.com",
-  projectId: "viochat-2528a",
-  storageBucket: "viochat-2528a.firebasestorage.app",
-  messagingSenderId: "296507148175",
-  appId: "1:296507148175:web:933c3fd682999649726dfa",
-  measurementId: "G-3B8DYF9Z96"
+    apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
+    authDomain: "viochat-2528a.firebaseapp.com",
+    projectId: "viochat-2528a",
+    storageBucket: "viochat-2528a.firebasestorage.app",
+    messagingSenderId: "296507148175",
+    appId: "1:296507148175:web:933c3fd682999649726dfa"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -129,12 +148,27 @@
 
   let currentUser = null;
   let chatDataStore = [];
+  let allContacts = [];
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
       
-      // 1. Tampilkan Avatar Pengguna Sendiri di Header (Pojok Kanan Atas)
+      // 1. Set Status Online Saat Aplikasi Dibuka
+      await setDoc(doc(db, "users", user.uid, "status", "current"), { 
+        isOnline: true, 
+        lastSeen: Date.now() 
+      });
+
+      // 2. Set Status Offline Saat Aplikasi Ditutup
+      window.addEventListener('beforeunload', () => {
+        setDoc(doc(db, "users", user.uid, "status", "current"), { 
+          isOnline: false, 
+          lastSeen: Date.now() 
+        });
+      });
+
+      // 3. Tampilkan Avatar di Header
       try {
         const myDoc = await getDoc(doc(db, "users", user.uid));
         if (myDoc.exists()) {
@@ -147,12 +181,11 @@
             avatarEl.innerText = data.displayName ? data.displayName.charAt(0).toUpperCase() : 'U';
           }
         }
-      } catch (e) { console.log("Gagal memuat avatar header:", e); }
+      } catch (e) { console.log(e); }
 
-      // 2. Mulai Memuat Daftar Chat
+      // 4. Mulai Chat List
       await initChatList();
     } else {
-      // Tendang ke login jika belum masuk (dengan jeda 1.5 detik)
       setTimeout(() => { if (!auth.currentUser) window.location.href = "vio-login.html"; }, 1500);
     }
   });
@@ -160,34 +193,25 @@
   async function initChatList() {
     const container = document.getElementById('dynamic-contacts');
     try {
-      // A. Ambil Daftar Kontak dari Koleksi 'users'
       const usersSnapshot = await getDocs(collection(db, "users"));
-      let contacts = [];
+      allContacts = [];
       usersSnapshot.forEach((doc) => {
-        if (doc.id !== currentUser.uid) {
-          contacts.push({ id: doc.id, ...doc.data() });
-        }
+        if (doc.id !== currentUser.uid) allContacts.push({ id: doc.id, ...doc.data() });
       });
 
-      document.getElementById('total-kontak').innerText = contacts.length;
+      document.getElementById('total-kontak').innerText = allContacts.length;
 
-      if (contacts.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">Belum ada kontak terdaftar.</div>';
+      if (allContacts.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">Belum ada kontak.</div>';
         return;
       }
 
-      // B. Ambil Ringkasan Pesan Terakhir dari Koleksi 'last_messages'
+      const summarySnapshot = await getDocs(collection(db, "last_messages"));
       let summaries = {};
-      try {
-        const summarySnapshot = await getDocs(collection(db, "last_messages"));
-        summarySnapshot.forEach(doc => { summaries[doc.id] = doc.data(); });
-      } catch (e) {
-        console.log("Gagal ambil ringkasan pesan:", e);
-      }
+      summarySnapshot.forEach(doc => { summaries[doc.id] = doc.data(); });
 
-      // C. Gabungkan Data Kontak dan Ringkasan Pesan
       chatDataStore = [];
-      contacts.forEach(contact => {
+      allContacts.forEach(contact => {
         const roomId = [currentUser.uid, contact.id].sort().join("_");
         const summary = summaries[roomId];
 
@@ -198,13 +222,11 @@
         let lastMsgIsRead = true;
         let lastMsgIsMe = false;
 
-        // Jika ada ringkasan obrolan sebelumnya
         if (summary) {
           lastMessage = summary.text;
           lastMsgIsRead = summary.isRead;
           lastMsgIsMe = summary.senderId === currentUser.uid;
           
-          // Format Waktu (Jam atau Tanggal)
           if (summary.updatedAt) {
             const date = summary.updatedAt.toDate();
             lastTimestamp = date.getTime();
@@ -216,68 +238,42 @@
             }
           }
 
-          // Tentukan status Belum Dibaca
           if (summary.senderId !== currentUser.uid && !summary.isRead) {
             isUnread = true;
           }
         }
 
         chatDataStore.push({ 
-          contact, lastMessage, lastTimeStr, lastTimestamp, isUnread, lastMsgIsRead, lastMsgIsMe 
+          contact, lastMessage, lastTimeStr, lastTimestamp, isUnread, lastMsgIsRead, lastMsgIsMe, isOnline: false 
         });
       });
 
-      // D. Tampilkan ke Layar
       renderChatListUI();
-
-      // E. Dengarkan Perubahan secara Real-time HANYA pada koleksi 'last_messages'
-      onSnapshot(collection(db, "last_messages"), (snapshot) => {
-        let needUpdate = false;
-        
-        snapshot.docChanges().forEach((change) => {
-          const summaryData = change.doc.data();
-          const roomIdChanged = change.doc.id;
-          
-          // Cari kontak yang cocok dengan perubahan ini
-          const index = chatDataStore.findIndex(c => [currentUser.uid, c.contact.id].sort().join("_") === roomIdChanged);
-          
-          if (index !== -1) {
-            // Perbarui data di penyimpanan lokal
-            if (summaryData.updatedAt) {
-              const date = summaryData.updatedAt.toDate();
-              chatDataStore[index].lastTimestamp = date.getTime();
-              const today = new Date();
-              if (date.toDateString() === today.toDateString()) {
-                chatDataStore[index].lastTimeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-              } else {
-                chatDataStore[index].lastTimeStr = date.getDate() + '/' + (date.getMonth()+1);
-              }
-            }
-            chatDataStore[index].lastMessage = summaryData.text;
-            chatDataStore[index].lastMsgIsRead = summaryData.isRead;
-            chatDataStore[index].lastMsgIsMe = summaryData.senderId === currentUser.uid;
-            chatDataStore[index].isUnread = (summaryData.senderId !== currentUser.uid && !summaryData.isRead);
-            
-            needUpdate = true;
-          }
-        });
-        
-        if (needUpdate) renderChatListUI();
-      });
+      listenToContactsStatus();
 
     } catch (error) {
       container.innerHTML = `<div style="text-align: center; padding: 20px; color: red;">Gagal memuat: ${error.message}</div>`;
     }
   }
 
-  // Fungsi untuk Menggambar Daftar Chat ke HTML
+  // === FUNGSI MENDENGARKAN STATUS ONLINE KONTAK ===
+  function listenToContactsStatus() {
+    allContacts.forEach(contact => {
+      const statusRef = doc(db, "users", contact.id, "status", "current");
+      onSnapshot(statusRef, (docSnap) => {
+        const index = chatDataStore.findIndex(c => c.contact.id === contact.id);
+        if (index !== -1) {
+          chatDataStore[index].isOnline = docSnap.exists() ? docSnap.data().isOnline : false;
+          renderChatListUI();
+        }
+      });
+    });
+  }
+
   function renderChatListUI() {
     const container = document.getElementById('dynamic-contacts');
-    
-    // Urutkan berdasarkan waktu pesan terakhir (terbaru di atas)
     chatDataStore.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
 
-    // Hitung Total Belum Dibaca
     let totalUnread = chatDataStore.filter(c => c.isUnread).length;
     const unreadBadge = document.getElementById('total-unread');
     if (totalUnread > 0) {
@@ -292,7 +288,6 @@
       const avatarClass = index % 2 === 0 ? 'v1' : 'v2';
       const name = data.contact.displayName || (data.contact.email ? data.contact.email.split('@')[0] : 'Tanpa Nama');
       
-      // Tampilkan Foto Profil Kontak (jika ada)
       let avatarHTML = '';
       if (data.contact.photoURL && data.contact.photoURL.trim() !== "") {
         avatarHTML = `<img src="${data.contact.photoURL}" alt="${name}">`;
@@ -300,7 +295,6 @@
         avatarHTML = name.charAt(0).toUpperCase();
       }
       
-      // Tampilkan Ikon Centang di Preview Pesan Terakhir
       let checkPreviewHTML = '';
       if (data.lastMsgIsMe && data.lastTimestamp > 0) {
         checkPreviewHTML = data.lastMsgIsRead 
@@ -315,9 +309,9 @@
       };
       
       div.innerHTML = `
-        <div class="avatar-wrap online">
+        <div class="avatar-wrap ${data.isOnline ? 'online' : ''}">
           <div class="avatar ${avatarClass}">${avatarHTML}</div>
-          <div class="online-badge"></div>
+          <div class="online-badge ${data.isOnline ? 'active' : ''}"></div>
         </div>
         <div class="chat-content">
           <div class="chat-top">
