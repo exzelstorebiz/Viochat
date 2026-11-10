@@ -59,21 +59,20 @@
 
   /* === ANIMASI TYPING BUBBLE === */
   .typing-indicator-wrapper {
-    position: absolute;
-    bottom: 75px;
-    left: 16px;
-    z-index: 5;
-    display: none;
-  }
+  display: none;
+  align-self: flex-start; /* Agar sejajar kiri seperti pesan masuk */
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
   .typing-bubble {
-    padding: 12px 16px;
-    background: var(--white);
-    border-radius: 18px 18px 18px 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    animation: pop 0.25s ease;
-  }
+  padding: 12px 16px;
+  background: var(--white);
+  border-radius: 18px 18px 18px 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  display: flex;
+  align-items: center;
+  width: fit-content;
+}
   .typing-dots { display: flex; gap: 4px; align-items: center; height: 14px; }
   .typing-dots span { width: 7px; height: 7px; background-color: var(--violet-500); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
   .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
@@ -188,8 +187,16 @@
     const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "asc"));
 
     onSnapshot(q, (snapshot) => {
-      msgContainer.innerHTML = '';
-      let lastDateString = "";
+  msgContainer.innerHTML = '';
+  
+  // PINDAHKAN TYPING WRAPPER KE DALAM AREA CHAT
+  const typingWrapper = document.getElementById('typing-wrapper');
+  if (typingWrapper) {
+    msgContainer.appendChild(typingWrapper);
+  }
+
+  let lastDateString = "";
+  // ...
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
@@ -256,14 +263,14 @@
 
     // Dengarkan typing dari lawan
     const typingRef = doc(db, "chats", roomId, "typing", targetUid);
-    onSnapshot(typingRef, (docSnap) => {
-      if (docSnap.exists() && docSnap.data().isTyping === true) {
-        typingWrapper.style.display = 'block';
-        msgContainer.scrollTop = msgContainer.scrollHeight;
-      } else {
-        typingWrapper.style.display = 'none';
-      }
-    });
+onSnapshot(typingRef, (docSnap) => {
+  if (docSnap.exists() && docSnap.data().isTyping === true) {
+    typingWrapper.style.display = 'flex'; // Tampilkan
+    msgContainer.scrollTop = msgContainer.scrollHeight; // Scroll ke bawah
+  } else {
+    typingWrapper.style.display = 'none'; // Sembunyikan
+  }
+});
 
     // Kirim typing saat kita mengetik
     inputField.addEventListener('input', () => {
