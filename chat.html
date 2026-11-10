@@ -38,16 +38,17 @@
   .chat-header-name { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chat-header-status { font-size: 12px; opacity: 0.85; display: flex; align-items: center; gap: 5px; }
   .online-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; }
-  
+
   /* === BACKGROUND AURORA BOREALIS === */
-.bg-aurora {
-  background-color: #f8f6ff;
-  background-image: 
-    radial-gradient(ellipse at top left, rgba(139, 92, 246, 0.25) 0%, transparent 60%),
-    radial-gradient(ellipse at bottom right, rgba(249, 115, 22, 0.15) 0%, transparent 60%),
-    radial-gradient(ellipse at center, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
-}
-  .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: var(--violet-50); position: relative; }
+  .bg-aurora {
+    background-color: #f8f6ff;
+    background-image: 
+      radial-gradient(ellipse at top left, rgba(139, 92, 246, 0.25) 0%, transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(249, 115, 22, 0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at center, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+  }
+
+  .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; position: relative; }
   .date-divider { align-self: center; background: var(--violet-100); color: var(--violet-700); font-size: 11px; font-weight: 600; padding: 4px 14px; border-radius: 20px; margin: 8px 0; }
   .msg { max-width: 78%; padding: 10px 14px; font-size: 14.5px; line-height: 1.45; animation: pop 0.25s ease; display: flex; flex-direction: column; }
   @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -118,7 +119,8 @@
     </div>
   </div>
 
-  <div class="chat-messages" id="chat-messages"><div class="chat-messages bg-aurora" id="chat-messages">
+  <!-- Area Chat dengan background Aurora -->
+  <div class="chat-messages bg-aurora" id="chat-messages">
     <div class="date-divider" id="loading-text">Memuat pesan...</div>
     
     <!-- TYPING INDICATOR WRAPPER (Sekarang ada di dalam chat) -->
