@@ -130,6 +130,7 @@
     <button class="send-btn" onclick="window.sendMsg()">➤</button>
   </div>
 </div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -198,18 +199,13 @@
     const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "asc"));
 
     onSnapshot(q, (snapshot) => {
+      // Simpan elemen typing sebelum layar dibersihkan
+      let typingWrapper = document.getElementById('typing-wrapper');
+      
       msgContainer.innerHTML = '';
-      
-      // Simpan elemen typing agar tidak terhapus
-      const typingWrapper = document.getElementById('typing-wrapper');
-      
-      // Masukkan kembali typing wrapper ke paling bawah container
-      if (typingWrapper) {
-        msgContainer.appendChild(typingWrapper);
-      }
-
       let lastDateString = "";
 
+      // Render pesan-pesan
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
         const isMe = data.senderId === currentUser.uid;
@@ -245,12 +241,7 @@
             const divider = document.createElement('div');
             divider.className = 'date-divider';
             divider.innerText = dateLabel;
-            // Sisipkan sebelum typing wrapper agar urutan tetap rapi
-            if (typingWrapper) {
-              msgContainer.insertBefore(divider, typingWrapper);
-            } else {
-              msgContainer.appendChild(divider);
-            }
+            msgContainer.appendChild(divider);
             lastDateString = dateLabel;
           }
         }
@@ -265,14 +256,13 @@
         const msgDiv = document.createElement('div');
         msgDiv.className = `msg ${isMe ? 'sent' : 'received'}`;
         msgDiv.innerHTML = `<div>${data.text}</div><div class="time">${timeStr} ${checkHTML}</div>`;
-        
-        // Sisipkan sebelum typing wrapper agar bubble baru selalu di atas animasi typing
-        if (typingWrapper) {
-          msgContainer.insertBefore(msgDiv, typingWrapper);
-        } else {
-          msgContainer.appendChild(msgDiv);
-        }
+        msgContainer.appendChild(msgDiv);
       });
+
+      // Kembalikan elemen typing ke paling bawah SETELAH pesan dirender
+      if (typingWrapper) {
+        msgContainer.appendChild(typingWrapper);
+      }
 
       msgContainer.scrollTop = msgContainer.scrollHeight;
     });
@@ -284,13 +274,16 @@
     const typingWrapper = document.getElementById('typing-wrapper');
     const msgContainer = document.getElementById('chat-messages');
 
+    // Sembunyikan animasi terlebih dahulu
+    typingWrapper.style.display = 'none';
+
     // Dengarkan typing dari lawan
     const typingRef = doc(db, "chats", roomId, "typing", targetUid);
     onSnapshot(typingRef, (docSnap) => {
       if (docSnap.exists() && docSnap.data().isTyping === true) {
         typingWrapper.style.display = 'flex'; // Tampilkan
-        // Hanya scroll ke bawah jika pengguna sedang di paling bawah
-        const isScrolledToBottom = msgContainer.scrollHeight - msgContainer.scrollTop <= msgContainer.clientHeight + 50;
+        // Scroll ke bawah hanya jika pengguna tidak sedang membaca pesan lama
+        const isScrolledToBottom = msgContainer.scrollHeight - msgContainer.scrollTop <= msgContainer.clientHeight + 100;
         if (isScrolledToBottom) {
           msgContainer.scrollTop = msgContainer.scrollHeight;
         }
