@@ -59,7 +59,7 @@
     background: var(--green); 
     border: 2.5px solid var(--white); 
     border-radius: 50%; 
-    display: none; /* Disembunyikan secara default */
+    display: none; 
   }
   
   .online-badge.active {
@@ -149,26 +149,36 @@
   let currentUser = null;
   let chatDataStore = [];
   let allContacts = [];
+  let heartbeatInterval = null;
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
       
-      // 1. Set Status Online Saat Aplikasi Dibuka
-      await setDoc(doc(db, "users", user.uid, "status", "current"), { 
-        isOnline: true, 
-        lastSeen: Date.now() 
-      });
+      // --- FUNGSI HEARTBEAT (DETAK JANTUNG) ---
+      const sendHeartbeat = () => {
+        setDoc(doc(db, "users", user.uid, "status", "current"), { 
+          isOnline: true, 
+          lastSeen: Date.now() 
+        }).catch(e => console.log("Heartbeat gagal:", e));
+      };
 
-      // 2. Set Status Offline Saat Aplikasi Ditutup
+      // 1. Kirim sinyal pertama kali
+      sendHeartbeat();
+
+      // 2. Kirim sinyal setiap 30 detik
+      heartbeatInterval = setInterval(sendHeartbeat, 30000);
+
+      // 3. Kirim sinyal offline saat tab ditutup
       window.addEventListener('beforeunload', () => {
+        clearInterval(heartbeatInterval);
         setDoc(doc(db, "users", user.uid, "status", "current"), { 
           isOnline: false, 
           lastSeen: Date.now() 
         });
       });
 
-      // 3. Tampilkan Avatar di Header
+      // 4. Tampilkan Avatar di Header
       try {
         const myDoc = await getDoc(doc(db, "users", user.uid));
         if (myDoc.exists()) {
@@ -183,7 +193,7 @@
         }
       } catch (e) { console.log(e); }
 
-      // 4. Mulai Chat List
+      // 5. Mulai Chat List
       await initChatList();
     } else {
       setTimeout(() => { if (!auth.currentUser) window.location.href = "vio-login.html"; }, 1500);
@@ -256,14 +266,27 @@
     }
   }
 
-  // === FUNGSI MENDENGARKAN STATUS ONLINE KONTAK ===
+  // === FUNGSI MENDENGARKAN STATUS ONLINE & HEARTBEAT ===
   function listenToContactsStatus() {
     allContacts.forEach(contact => {
       const statusRef = doc(db, "users", contact.id, "status", "current");
       onSnapshot(statusRef, (docSnap) => {
         const index = chatDataStore.findIndex(c => c.contact.id === contact.id);
         if (index !== -1) {
-          chatDataStore[index].isOnline = docSnap.exists() ? docSnap.data().isOnline : false;
+          let isActuallyOnline = false;
+          
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            // Cek Heartbeat: Apakah sinyal terakhir < 70 detik yang lalu?
+            if (data.isOnline && data.lastSeen) {
+              const timeDiff = Date.now() - data.lastSeen;
+              if (timeDiff < 70000) { // 70 detik toleransi
+                isActuallyOnline = true;
+              }
+            }
+          }
+          
+          chatDataStore[index].isOnline = isActuallyOnline;
           renderChatListUI();
         }
       });
