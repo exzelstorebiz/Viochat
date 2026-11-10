@@ -17,6 +17,10 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Inter', sans-serif; background: var(--violet-50); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
   .phone { width: 100%; max-width: 420px; height: 90vh; max-height: 800px; background: var(--white); border-radius: 32px; overflow: hidden; box-shadow: 0 25px 60px -12px rgba(91, 33, 182, 0.35); display: flex; flex-direction: column; position: relative; }
+  body {
+  -webkit-font-smoothing: antialiased; /* Membuat teks lebih tajam di layar HP */
+  text-rendering: optimizeLegibility;
+}
   
   .chat-header { background: linear-gradient(135deg, var(--violet-600) 0%, var(--violet-800) 100%); padding: 16px 20px; color: white; display: flex; align-items: center; gap: 12px; flex-shrink: 0; z-index: 10; }
   .back-btn { font-size: 24px; cursor: pointer; padding-right: 8px; display: flex; align-items: center; }
