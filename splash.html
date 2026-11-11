@@ -183,10 +183,40 @@
 <div class="developer-text">Developed by: Soren Suhendro</div>
 
   <script>
-    const SPLASH_DURATION = 3500; 
-    setTimeout(() => {
-      window.location.href = 'index.html';
-    }, SPLASH_DURATION);
+    <script type="module">
+  // Impor Firebase untuk mengecek sesi login
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  // Konfigurasi Firebase Anda
+  const firebaseConfig = {
+  apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
+  authDomain: "viochat-2528a.firebaseapp.com",
+  projectId: "viochat-2528a",
+  storageBucket: "viochat-2528a.firebasestorage.app",
+  messagingSenderId: "296507148175",
+  appId: "1:296507148175:web:933c3fd682999649726dfa",
+  measurementId: "G-3B8DYF9Z96"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const SPLASH_DURATION = 3500; // 3.5 detik
+
+  // Tunggu 3 detik, lalu cek status login
+  setTimeout(() => {
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Jika sudah login, masuk ke Chat List
+        window.location.href = 'index.html';
+      } else {
+        // Jika belum login, masuk ke halaman Login
+        window.location.href = 'vio-login.html';
+      }
+    });
+  }, SPLASH_DURATION);
+</script>
   </script>
 
 </body>
