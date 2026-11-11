@@ -112,6 +112,12 @@
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { getFirestore, collection, getDocs, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+  // Cek apakah ini pertama kali dibuka di sesi ini
+if (!sessionStorage.getItem('splashShown')) {
+    sessionStorage.setItem('splashShown', 'true');
+    window.location.href = 'splash.html';
+}
+  
   // --- KONFIGURASI FIREBASE ANDA ---
   const firebaseConfig = {
   apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
