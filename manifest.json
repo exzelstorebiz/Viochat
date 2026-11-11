@@ -1,11 +1,12 @@
 {
   "name": "VioChat",
   "short_name": "VioChat",
-  "start_url": ".",
-  "scope": "."
+  "description": "Aplikasi Chat Keluarga Mbah Papi",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#F5F3FF",
+  "background_color": "#F8F6FF",
   "theme_color": "#7C3AED",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "logo-viochat.png",
