@@ -184,11 +184,9 @@
 
   <script>
     <script type="module">
-  // Impor Firebase untuk mengecek sesi login
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  // Konfigurasi Firebase Anda
   const firebaseConfig = {
   apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
   authDomain: "viochat-2528a.firebaseapp.com",
@@ -202,20 +200,19 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  const SPLASH_DURATION = 3500; // 3.5 detik
+  const SPLASH_DURATION = 3500;
 
-  // Tunggu 3 detik, lalu cek status login
+  // Tunggu animasi selesai, baru cek login
   setTimeout(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Jika sudah login, masuk ke Chat List
         window.location.href = 'index.html';
       } else {
-        // Jika belum login, masuk ke halaman Login
         window.location.href = 'vio-login.html';
       }
     });
   }, SPLASH_DURATION);
+</script>
 </script>
   </script>
 
