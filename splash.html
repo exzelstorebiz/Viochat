@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VioChat - Memuat...</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --violet-500: #8B5CF6;
+    --orange-500: #F97316;
+    --bg-dark: #120A20;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
+    /* Efek Aurora Gelap di latar belakang */
+    background-image: 
+      radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.2) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(249, 115, 22, 0.15) 0%, transparent 40%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    flex-direction: column;
+  }
+
+  /* Container utama */
+  .splash-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: fadeOut 0.8s ease-in-out forwards;
+    animation-delay: 2.8s; /* Mulai memudar setelah 2.8 detik */
+  }
+
+  /* Container Logo */
+  .logo-container {
+    width: 120px;
+    height: 120px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    /* Animasi Pop-In */
+    opacity: 0;
+    transform: scale(0.5);
+    animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  .logo-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* Efek cahaya di belakang logo */
+    filter: drop-shadow(0 0 25px rgba(124, 58, 237, 0.6));
+    z-index: 2;
+    border-radius: 20px; /* Sedikit membulat jika logo kotak */
+  }
+
+  /* Efek Cincin Cahaya di belakang logo */
+  .logo-container::before {
+    content: '';
+    position: absolute;
+    width: 160%;
+    height: 160%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.2) 0%, transparent 60%);
+    animation: glow 2s infinite alternate;
+    z-index: 1;
+  }
+
+  /* Teks VioChat di bawah logo */
+  .app-name {
+    color: white;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-top: 20px;
+    opacity: 0;
+    animation: fadeInUp 0.8s ease forwards;
+    animation-delay: 0.5s;
+  }
+
+  /* Teks kecil di bawah */
+  .subtitle {
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-top: 5px;
+    opacity: 0;
+    animation: fadeInUp 0.8s ease forwards;
+    animation-delay: 0.8s;
+  }
+
+  /* Loading Bar */
+  .loader {
+    margin-top: 30px;
+    width: 60px;
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+    opacity: 0;
+    animation: fadeInUp 0.8s ease forwards;
+    animation-delay: 1s;
+  }
+
+  .loader::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    width: 50%;
+    background: linear-gradient(90deg, var(--violet-500), var(--orange-500));
+    border-radius: 3px;
+    animation: loadingBar 1.2s ease-in-out infinite;
+  }
+
+  /* === KEYFRAMES ANIMASI === */
+  @keyframes popIn {
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes glow {
+    0% { transform: scale(0.9); opacity: 0.5; }
+    100% { transform: scale(1.1); opacity: 1; }
+  }
+
+  @keyframes loadingBar {
+    0% { left: -50%; }
+    100% { left: 100%; }
+  }
+
+  @keyframes fadeOut {
+    to { opacity: 0; visibility: hidden; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="splash-container">
+    <div class="logo-container">
+      <!-- Pastikan nama file logo Anda benar -->
+      <img src="logo-viochat.png" alt="VioChat Logo">
+    </div>
+    
+    <div class="app-name">VioChat</div>
+    <div class="subtitle">Chat Keluarga Mbah Papi</div>
+    
+    <div class="loader"></div>
+  </div>
+
+  <script>
+    // Durasi splash screen (dalam milidetik). 3000 = 3 detik.
+    const SPLASH_DURATION = 3000; 
+
+    setTimeout(() => {
+      // Setelah durasi habis, pindah ke halaman index.html (Chat List)
+      window.location.href = 'index.html';
+    }, SPLASH_DURATION);
+  </script>
+
+</body>
+</html>
