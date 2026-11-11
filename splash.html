@@ -7,19 +7,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
+    --violet-600: #7C3AED;
     --violet-500: #8B5CF6;
     --orange-500: #F97316;
-    --bg-dark: #120A20;
+    --bg-light: #F8F6FF; /* Warna dasar putih keunguan */
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   
   body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--bg-dark);
-    /* Efek Aurora Gelap di latar belakang */
+    background-color: var(--bg-light);
+    /* Efek Aurora Lembut di latar belakang terang */
     background-image: 
-      radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.2) 0%, transparent 40%),
-      radial-gradient(circle at 85% 80%, rgba(249, 115, 22, 0.15) 0%, transparent 40%);
+      radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(249, 115, 22, 0.08) 0%, transparent 40%);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -35,7 +36,7 @@
     align-items: center;
     justify-content: center;
     animation: fadeOut 0.8s ease-in-out forwards;
-    animation-delay: 2.8s; /* Mulai memudar setelah 2.8 detik */
+    animation-delay: 2.8s;
   }
 
   /* Container Logo */
@@ -47,7 +48,6 @@
     justify-content: center;
     align-items: center;
     
-    /* Animasi Pop-In */
     opacity: 0;
     transform: scale(0.5);
     animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
@@ -57,10 +57,10 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-    /* Efek cahaya di belakang logo */
-    filter: drop-shadow(0 0 25px rgba(124, 58, 237, 0.6));
+    /* Efek cahaya ungu di belakang logo (tetap ada di mode terang) */
+    filter: drop-shadow(0 0 20px rgba(124, 58, 237, 0.3));
     z-index: 2;
-    border-radius: 20px; /* Sedikit membulat jika logo kotak */
+    border-radius: 20px;
   }
 
   /* Efek Cincin Cahaya di belakang logo */
@@ -70,14 +70,14 @@
     width: 160%;
     height: 160%;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(249, 115, 22, 0.2) 0%, transparent 60%);
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 60%);
     animation: glow 2s infinite alternate;
     z-index: 1;
   }
 
   /* Teks VioChat di bawah logo */
   .app-name {
-    color: white;
+    color: var(--violet-600); /* Warna teks diubah jadi violet agar kontras */
     font-size: 28px;
     font-weight: 800;
     letter-spacing: -0.5px;
@@ -89,7 +89,7 @@
 
   /* Teks kecil di bawah */
   .subtitle {
-    color: rgba(255,255,255,0.6);
+    color: #6B7280; /* Abu-abu gelap agar terbaca di latar terang */
     font-size: 13px;
     letter-spacing: 1px;
     margin-top: 5px;
@@ -103,7 +103,7 @@
     margin-top: 30px;
     width: 60px;
     height: 3px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(124, 58, 237, 0.1); /* Latar bar dipertegas */
     border-radius: 3px;
     overflow: hidden;
     position: relative;
@@ -118,7 +118,7 @@
     top: 0; left: 0;
     height: 100%;
     width: 50%;
-    background: linear-gradient(90deg, var(--violet-500), var(--orange-500));
+    background: linear-gradient(90deg, var(--violet-600), var(--orange-500));
     border-radius: 3px;
     animation: loadingBar 1.2s ease-in-out infinite;
   }
@@ -163,11 +163,8 @@
   </div>
 
   <script>
-    // Durasi splash screen (dalam milidetik). 3000 = 3 detik.
-    const SPLASH_DURATION = 3000; 
-
+    const SPLASH_DURATION = 4000; 
     setTimeout(() => {
-      // Setelah durasi habis, pindah ke halaman index.html (Chat List)
       window.location.href = 'index.html';
     }, SPLASH_DURATION);
   </script>
