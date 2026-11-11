@@ -168,6 +168,7 @@
 
   // --- KONFIGURASI FIREBASE ANDA ---
   const firebaseConfig = {
+  const firebaseConfig = {
   apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
   authDomain: "viochat-2528a.firebaseapp.com",
   projectId: "viochat-2528a",
@@ -288,8 +289,11 @@
         
         // LOGIKA UNTUK MENAMPILKAN TEKS ATAU GAMBAR
         if (data.type === 'image') {
+          // Tambahkan referrerpolicy dan crossorigin untuk mengatasi blokir ImgBB
           msgDiv.innerHTML = `
-            <div><img src="${data.imageUrl}" class="chat-img" onclick="window.open(this.src)" alt="Gambar"></div>
+            <div>
+              <img src="${data.imageUrl}" class="chat-img" referrerpolicy="no-referrer" crossorigin="anonymous" onclick="window.open(this.src)" alt="Gambar">
+            </div>
             <div class="time">${timeStr} ${checkHTML}</div>
           `;
         } else {
@@ -340,7 +344,8 @@
       const result = await response.json();
 
       if (result.success) {
-        const imageUrl = result.data.url;
+        // Gunakan display_url atau url
+        const imageUrl = result.data.display_url || result.data.url;
         
         // Kirim URL gambar sebagai pesan
         await sendImageMessage(imageUrl);
