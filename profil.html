@@ -21,13 +21,11 @@
   
   .content { flex: 1; padding: 24px; overflow-y: auto; }
   
-  /* Foto Profil */
   .profile-section { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
   .profile-img-container { width: 120px; height: 120px; border-radius: 50%; border: 4px solid var(--orange-500); padding: 4px; margin-bottom: 16px; position: relative; cursor: pointer; }
   .profile-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: var(--violet-500); display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 700; color: white; }
   .upload-overlay { position: absolute; bottom: 0; right: 0; background: var(--orange-500); color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
   
-  /* Form */
   .form-group { margin-bottom: 16px; }
   .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--violet-800); margin-bottom: 8px; }
   .form-input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--violet-100); background: var(--violet-50); font-family: inherit; font-size: 14px; color: var(--text); outline: none; }
@@ -37,7 +35,6 @@
   .btn-save:active { transform: scale(0.98); }
   .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  /* Input file disembunyikan */
   #fileInput { display: none; }
 </style>
 </head>
@@ -51,14 +48,12 @@
 
   <div class="content">
     <div class="profile-section">
-      <!-- Container untuk foto (bisa diklik) -->
       <div class="profile-img-container" onclick="document.getElementById('fileInput').click()">
         <div class="profile-img" id="avatarDisplay">U</div>
         <div class="upload-overlay">📷</div>
       </div>
       <p style="font-size: 12px; color: var(--text-muted); text-align: center;">Ketuk foto untuk memilih dari galeri.</p>
       
-      <!-- Input file tersembunyi -->
       <input type="file" id="fileInput" accept="image/*" onchange="uploadFoto(this)">
     </div>
 
@@ -92,15 +87,19 @@
   measurementId: "G-3B8DYF9Z96"
   };
 
-  // ⚠️ MASUKKAN API KEY IMGBB ANDA DI SINI
-  const IMGBB_API_KEY = "6caa5fd821165946059e84869e484523";
+  // ==========================================
+  // ⚠️ ISI DATA CLOUDINARY ANDA DI SINI
+  // ==========================================
+  const CLOUDINARY_CLOUD_NAME = "yf3gloky";
+  const CLOUDINARY_UPLOAD_PRESET = "viochat-unsigned"; // Nama preset yang tadi dibuat
+  // ==========================================
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
   let currentUser = null;
-  let currentPhotoUrl = ""; // Menyimpan URL foto sementara
+  let currentPhotoUrl = "";
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -117,74 +116,68 @@
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      
       document.getElementById('inputName').value = data.displayName || '';
       document.getElementById('inputPhone').value = data.phoneNumber || '';
       currentPhotoUrl = data.photoURL || '';
-
       updateAvatarDisplay(data.displayName, currentPhotoUrl);
     }
   }
 
-  // Fungsi untuk mengubah tampilan avatar
   function updateAvatarDisplay(name, url) {
     const avatarEl = document.getElementById('avatarDisplay');
     if (url && url.trim() !== "") {
       avatarEl.style.background = "transparent";
-      // Tambahkan timestamp agar browser tidak menyimpan cache gambar lama
-      avatarEl.innerHTML = `<img src="${url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.style.display='none'; this.parentElement.style.background='var(--violet-500)'; this.parentElement.innerText='${name ? name.charAt(0).toUpperCase() : 'U'}'">`;
+      // Tambahkan anti-cache
+      const freshUrl = `${url}?t=${Date.now()}`;
+      avatarEl.innerHTML = `<img src="${freshUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.style.display='none'; this.parentElement.style.background='var(--violet-500)'; this.parentElement.innerText='${name ? name.charAt(0).toUpperCase() : 'U'}'">`;
     } else {
       avatarEl.style.background = "var(--violet-500)";
       avatarEl.innerText = name ? name.charAt(0).toUpperCase() : "U";
     }
   }
 
-  // Fungsi Upload ke ImgBB
+  // === FUNGSI UPLOAD KE CLOUDINARY ===
   window.uploadFoto = async (input) => {
     const file = input.files[0];
     if (!file) return;
 
-    // Tampilkan loading sementara
     const btnSave = document.getElementById('btnSave');
     btnSave.disabled = true;
     btnSave.innerText = "Mengunggah foto...";
     document.getElementById('avatarDisplay').innerHTML = "⏳";
 
     try {
-      // Siapkan data form untuk ImgBB
+      // Siapkan data form untuk Cloudinary
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("file", file);
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
 
-      // Kirim ke API ImgBB
-      const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      // Kirim ke API Cloudinary
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: "POST",
         body: formData
       });
 
       const result = await response.json();
 
-      if (result.success) {
-        // Ambil URL gambar dari hasil respons
-        currentPhotoUrl = result.data.url;
-        
-        // Tampilkan preview
+      if (result.secure_url) {
+        currentPhotoUrl = result.secure_url;
         const name = document.getElementById('inputName').value;
         updateAvatarDisplay(name, currentPhotoUrl);
         alert("Foto berhasil diunggah! Jangan lupa klik 'Simpan Perubahan'.");
       } else {
-        alert("Gagal mengunggah foto: " + result.error.message);
-        updateAvatarDisplay("", ""); // Kembalikan ke inisial
+        alert("Gagal mengunggah foto: " + (result.error?.message || "Terjadi kesalahan."));
+        updateAvatarDisplay(document.getElementById('inputName').value, currentPhotoUrl);
       }
     } catch (error) {
       alert("Terjadi kesalahan saat mengunggah: " + error.message);
-      updateAvatarDisplay("", "");
+      updateAvatarDisplay(document.getElementById('inputName').value, currentPhotoUrl);
     } finally {
       btnSave.disabled = false;
       btnSave.innerText = "Simpan Perubahan";
     }
   };
 
-  // Simpan Teks & URL Foto ke Firestore
   window.simpanProfil = async () => {
     const newName = document.getElementById('inputName').value;
     const newPhone = document.getElementById('inputPhone').value;
@@ -199,7 +192,7 @@
       await updateDoc(userDocRef, {
         displayName: newName,
         phoneNumber: newPhone,
-        photoURL: currentPhotoUrl // Simpan URL gambar yang baru
+        photoURL: currentPhotoUrl
       });
       
       alert("Profil berhasil diperbarui!");
