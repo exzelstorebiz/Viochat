@@ -182,7 +182,7 @@
 <!-- Teks Developer -->
 <div class="developer-text">Developed by: Soren Suhendro</div>
 
-  <script>
+
     <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -200,7 +200,7 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  const SPLASH_DURATION = 3000;
+  const SPLASH_DURATION = 3500;
 
   // Tunggu animasi selesai, baru cek login
   setTimeout(() => {
@@ -212,8 +212,6 @@
       }
     });
   }, SPLASH_DURATION);
-</script>
-</script>
   </script>
 
 </body>
