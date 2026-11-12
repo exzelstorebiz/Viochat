@@ -20,6 +20,74 @@
   body { font-family: 'Inter', sans-serif; background: var(--violet-50); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
   .phone { width: 100%; max-width: 420px; height: 90vh; max-height: 800px; background: var(--white); border-radius: 32px; overflow: hidden; box-shadow: 0 25px 60px -12px rgba(91, 33, 182, 0.35); display: flex; flex-direction: column; position: relative; }
 
+  /* === CSS SPLASH SCREEN (OVERLAY) === */
+  #splash-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #F8F6FF;
+    background-image: 
+      radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(249, 115, 22, 0.08) 0%, transparent 40%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease;
+  }
+
+  #splash-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .splash-logo-container {
+    width: 120px; height: 120px;
+    display: flex; justify-content: center; align-items: center;
+    opacity: 0; transform: scale(0.5);
+    animation: splashPopIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  .splash-logo-container img {
+    width: 100%; height: 100%; object-fit: contain;
+    filter: drop-shadow(0 0 20px rgba(124, 58, 237, 0.3));
+    border-radius: 20px;
+  }
+  .splash-logo-container::before {
+    content: ''; position: absolute; width: 160px; height: 160px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 60%);
+    animation: splashGlow 2s infinite alternate;
+  }
+
+  .splash-app-name {
+    color: var(--violet-600); font-size: 28px; font-weight: 800;
+    margin-top: 20px; opacity: 0; animation: splashFadeInUp 0.8s ease forwards; animation-delay: 0.5s;
+  }
+  .splash-subtitle {
+    color: #6B7280; font-size: 14.5px; letter-spacing: 1px;
+    margin-top: 5px; opacity: 0; animation: splashFadeInUp 0.8s ease forwards; animation-delay: 0.8s;
+  }
+  .splash-loader {
+    margin-top: 30px; width: 60px; height: 3px; background: rgba(124, 58, 237, 0.1);
+    border-radius: 3px; overflow: hidden; position: relative; opacity: 0;
+    animation: splashFadeInUp 0.8s ease forwards; animation-delay: 1s;
+  }
+  .splash-loader::after {
+    content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 50%;
+    background: linear-gradient(90deg, var(--violet-600), var(--orange-500));
+    border-radius: 3px; animation: splashLoadingBar 1.2s ease-in-out infinite;
+  }
+  .splash-developer-text {
+    position: absolute; bottom: 20px; width: 100%; text-align: center;
+    color: #9CA3AF; font-size: 11px; letter-spacing: 0.5px; opacity: 0;
+    animation: splashFadeInUp 0.8s ease forwards; animation-delay: 1.5s;
+  }
+
+  @keyframes splashPopIn { to { opacity: 1; transform: scale(1); } }
+  @keyframes splashFadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes splashGlow { 0% { transform: scale(0.9); opacity: 0.5; } 100% { transform: scale(1.1); opacity: 1; } }
+  @keyframes splashLoadingBar { 0% { left: -50%; } 100% { left: 100%; } }
+  /* ================================== */
+
   .app-header { background: linear-gradient(135deg, var(--violet-600) 0%, var(--violet-800) 100%); padding: 20px 20px 16px; color: white; }
   .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .app-title { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
@@ -73,6 +141,17 @@
 </head>
 <body>
 
+<!-- OVERLAY SPLASH SCREEN -->
+<div id="splash-overlay" style="display: none;">
+  <div class="splash-logo-container">
+    <img src="logo-viochat.png" alt="VioChat Logo">
+  </div>
+  <div class="splash-app-name">VioChat</div>
+  <div class="splash-subtitle">Obrolan Keluarga Mbah Papi</div>
+  <div class="splash-loader"></div>
+  <div class="splash-developer-text">Developed by: Soren Suhendro</div>
+</div>
+
 <div class="phone">
   <div class="app-header">
     <div class="header-top">
@@ -82,7 +161,6 @@
       </div>
       <div class="header-actions">
         <span>📷</span>
-        <!-- ID ditambahkan agar bisa diubah oleh JS -->
         <div class="profile-avatar" id="my-profile-avatar" onclick="window.location.href='profil.html'">U</div>
       </div>
     </div>
@@ -107,25 +185,43 @@
 
   <button class="fab" onclick="window.location.href='kontak.html'">✎</button>
 </div>
+
 <script type="module">
   // Daftarkan Service Worker untuk PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('Service Worker terdaftar!', reg))
-      .catch(err => console.log('Gagal daftar Service Worker:', err));
-  });
-}
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker terdaftar!', reg))
+        .catch(err => console.log('Gagal daftar Service Worker:', err));
+    });
+  }
+
+  // LOGIKA SPLASH SCREEN OVERLAY
+  const splashOverlay = document.getElementById('splash-overlay');
+  
+  // Jika belum pernah muncul di sesi ini, tampilkan splash
+  if (!sessionStorage.getItem('splashShown')) {
+    splashOverlay.style.display = 'flex';
+    
+    // Setelah 3 detik, sembunyikan splash dengan efek fade out
+    setTimeout(() => {
+      splashOverlay.classList.add('fade-out');
+      sessionStorage.setItem('splashShown', 'true');
+      
+      // Hapus elemen setelah animasi fade out selesai (0.5 detik)
+      setTimeout(() => {
+        splashOverlay.style.display = 'none';
+      }, 500);
+    }, 3000);
+  } else {
+    // Jika sudah pernah muncul, pastikan splash tidak tampil
+    splashOverlay.style.display = 'none';
+  }
+
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { getFirestore, collection, getDocs, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // Cek apakah ini pertama kali dibuka di sesi ini
-if (!sessionStorage.getItem('splashShown')) {
-    sessionStorage.setItem('splashShown', 'true');
-    window.location.href = 'splash.html';
-}
-  
   // --- KONFIGURASI FIREBASE ANDA ---
   const firebaseConfig = {
   apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
@@ -148,7 +244,7 @@ if (!sessionStorage.getItem('splashShown')) {
     if (user) {
       currentUser = user;
       
-      // 1. Tampilkan Avatar Pengguna Sendiri di Header (Pojok Kanan Atas)
+      // 1. Tampilkan Avatar Pengguna Sendiri di Header
       try {
         const myDoc = await getDoc(doc(db, "users", user.uid));
         if (myDoc.exists()) {
@@ -166,7 +262,6 @@ if (!sessionStorage.getItem('splashShown')) {
       // 2. Mulai Memuat Daftar Chat
       await initChatList();
     } else {
-      // Tendang ke login jika belum masuk (dengan jeda 1.5 detik)
       setTimeout(() => { if (!auth.currentUser) window.location.href = "vio-login.html"; }, 1500);
     }
   });
@@ -174,7 +269,6 @@ if (!sessionStorage.getItem('splashShown')) {
   async function initChatList() {
     const container = document.getElementById('dynamic-contacts');
     try {
-      // A. Ambil Daftar Kontak dari Koleksi 'users'
       const usersSnapshot = await getDocs(collection(db, "users"));
       let contacts = [];
       usersSnapshot.forEach((doc) => {
@@ -190,7 +284,6 @@ if (!sessionStorage.getItem('splashShown')) {
         return;
       }
 
-      // B. Ambil Ringkasan Pesan Terakhir dari Koleksi 'last_messages'
       let summaries = {};
       try {
         const summarySnapshot = await getDocs(collection(db, "last_messages"));
@@ -199,7 +292,6 @@ if (!sessionStorage.getItem('splashShown')) {
         console.log("Gagal ambil ringkasan pesan:", e);
       }
 
-      // C. Gabungkan Data Kontak dan Ringkasan Pesan
       chatDataStore = [];
       contacts.forEach(contact => {
         const roomId = [currentUser.uid, contact.id].sort().join("_");
@@ -212,13 +304,11 @@ if (!sessionStorage.getItem('splashShown')) {
         let lastMsgIsRead = true;
         let lastMsgIsMe = false;
 
-        // Jika ada ringkasan obrolan sebelumnya
         if (summary) {
           lastMessage = summary.text;
           lastMsgIsRead = summary.isRead;
           lastMsgIsMe = summary.senderId === currentUser.uid;
           
-          // Format Waktu (Jam atau Tanggal)
           if (summary.updatedAt) {
             const date = summary.updatedAt.toDate();
             lastTimestamp = date.getTime();
@@ -230,7 +320,6 @@ if (!sessionStorage.getItem('splashShown')) {
             }
           }
 
-          // Tentukan status Belum Dibaca
           if (summary.senderId !== currentUser.uid && !summary.isRead) {
             isUnread = true;
           }
@@ -241,10 +330,8 @@ if (!sessionStorage.getItem('splashShown')) {
         });
       });
 
-      // D. Tampilkan ke Layar
       renderChatListUI();
 
-      // E. Dengarkan Perubahan secara Real-time HANYA pada koleksi 'last_messages'
       onSnapshot(collection(db, "last_messages"), (snapshot) => {
         let needUpdate = false;
         
@@ -252,11 +339,9 @@ if (!sessionStorage.getItem('splashShown')) {
           const summaryData = change.doc.data();
           const roomIdChanged = change.doc.id;
           
-          // Cari kontak yang cocok dengan perubahan ini
           const index = chatDataStore.findIndex(c => [currentUser.uid, c.contact.id].sort().join("_") === roomIdChanged);
           
           if (index !== -1) {
-            // Perbarui data di penyimpanan lokal
             if (summaryData.updatedAt) {
               const date = summaryData.updatedAt.toDate();
               chatDataStore[index].lastTimestamp = date.getTime();
@@ -284,14 +369,11 @@ if (!sessionStorage.getItem('splashShown')) {
     }
   }
 
-  // Fungsi untuk Menggambar Daftar Chat ke HTML
   function renderChatListUI() {
     const container = document.getElementById('dynamic-contacts');
     
-    // Urutkan berdasarkan waktu pesan terakhir (terbaru di atas)
     chatDataStore.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
 
-    // Hitung Total Belum Dibaca
     let totalUnread = chatDataStore.filter(c => c.isUnread).length;
     const unreadBadge = document.getElementById('total-unread');
     if (totalUnread > 0) {
@@ -306,7 +388,6 @@ if (!sessionStorage.getItem('splashShown')) {
       const avatarClass = index % 2 === 0 ? 'v1' : 'v2';
       const name = data.contact.displayName || (data.contact.email ? data.contact.email.split('@')[0] : 'Tanpa Nama');
       
-      // Tampilkan Foto Profil Kontak (jika ada)
       let avatarHTML = '';
       if (data.contact.photoURL && data.contact.photoURL.trim() !== "") {
         avatarHTML = `<img src="${data.contact.photoURL}" alt="${name}">`;
@@ -314,7 +395,6 @@ if (!sessionStorage.getItem('splashShown')) {
         avatarHTML = name.charAt(0).toUpperCase();
       }
       
-      // Tampilkan Ikon Centang di Preview Pesan Terakhir
       let checkPreviewHTML = '';
       if (data.lastMsgIsMe && data.lastTimestamp > 0) {
         checkPreviewHTML = data.lastMsgIsRead 
