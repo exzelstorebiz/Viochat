@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memuat VioChat...</title>
+<style>
+  body {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #F8F6FF;
+    font-family: sans-serif; /* Font sistem, tanpa Google Fonts */
+  }
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #EDE9FE;
+    border-top: 4px solid #7C3AED;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+  }
+  .text {
+    color: #7C3AED;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <div class="spinner"></div>
+  <div class="text">MEMUAT VIOCHAT...</div>
+  <script>
+    // Tunggu setengah detik, lalu lempar ke index.html
+    setTimeout(function() {
+      window.location.replace('index.html');
+    }, 500);
+  </script>
+</body>
+</html>
