@@ -71,6 +71,7 @@
   .chat-list { flex: 1; overflow-y: auto; background: var(--white); padding: 8px 0; }
   .section-label { padding: 10px 20px 6px; font-size: 11.5px; font-weight: 700; color: var(--violet-700); text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 6px; }
   
+  /* === GAYA UNTUK TAB SEMUA & UNREAD === */
   .chat-item { display: flex; align-items: center; gap: 14px; padding: 12px 20px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--violet-50); }
   .chat-item:hover { background: var(--violet-50); }
   
@@ -96,6 +97,39 @@
   .status-check { font-size: 12px; font-weight: bold; }
   .check-read { color: var(--orange-500); }
   .check-sent { color: var(--text-muted); }
+
+  /* === GAYA KHUSUS UNTUK TAB GRUP (Beda Tampilan) === */
+  .chat-item-group {
+    display: flex;
+    flex-direction: column; /* Susun ke bawah */
+    align-items: flex-start;
+    gap: 8px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--violet-50);
+    cursor: pointer;
+  }
+  .chat-item-group:hover { background: var(--violet-50); }
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .group-header .avatar { width: 44px; height: 44px; font-size: 16px; }
+  .group-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--violet-800);
+  }
+  .group-message-box {
+    background: var(--violet-50);
+    padding: 10px 14px;
+    border-radius: 12px;
+    width: 100%;
+    font-size: 13.5px;
+    color: var(--text);
+    border-left: 3px solid var(--violet-500);
+  }
 
   .fab { position: absolute; bottom: 24px; right: 24px; width: 58px; height: 58px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-500), var(--orange-700)); border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4); z-index: 10; transition: transform 0.2s; }
   .fab:hover { transform: scale(1.08) rotate(90deg); }
@@ -134,11 +168,11 @@
   <div class="tabs">
     <div class="tab active" id="tab-semua" onclick="switchTab('semua')">Semua <span class="badge" id="total-kontak">0</span></div>
     <div class="tab" id="tab-unread" onclick="switchTab('unread')">Belum Dibaca <span class="badge" id="total-unread" style="display:none; background:var(--violet-600);">0</span></div>
-    <div class="tab">Grup</div>
+    <div class="tab" id="tab-grup" onclick="switchTab('grup')">Grup</div>
   </div>
 
   <div class="chat-list" id="chat-list-container">
-    <!-- <div class="section-label" style="margin-top: 10px;">💬 SEMUA CHAT</div> -->
+    <div class="section-label" style="margin-top: 10px;">💬 SEMUA CHAT</div>
     <div id="dynamic-contacts">
       <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">Memuat data...</div>
     </div>
@@ -181,23 +215,20 @@
 
   let currentUser = null;
   let chatDataStore = [];
-  let currentTab = 'semua'; // Variabel penanda tab aktif
+  let currentTab = 'semua';
 
   // Fungsi untuk berpindah tab
   window.switchTab = (tab) => {
     currentTab = tab;
     
-    // Atur kelas active pada tab
     document.getElementById('tab-semua').classList.remove('active');
     document.getElementById('tab-unread').classList.remove('active');
+    document.getElementById('tab-grup').classList.remove('active');
     
-    if (tab === 'semua') {
-      document.getElementById('tab-semua').classList.add('active');
-    } else if (tab === 'unread') {
-      document.getElementById('tab-unread').classList.add('active');
-    }
+    if (tab === 'semua') document.getElementById('tab-semua').classList.add('active');
+    if (tab === 'unread') document.getElementById('tab-unread').classList.add('active');
+    if (tab === 'grup') document.getElementById('tab-grup').classList.add('active');
     
-    // Render ulang daftar chat sesuai tab yang dipilih
     renderChatListUI();
   };
 
@@ -205,7 +236,6 @@
     if (user) {
       currentUser = user;
       
-      // Tampilkan Avatar Pengguna Sendiri di Header
       try {
         const myDoc = await getDoc(doc(db, "users", user.uid));
         if (myDoc.exists()) {
@@ -218,7 +248,7 @@
             avatarEl.innerText = data.displayName ? data.displayName.charAt(0).toUpperCase() : 'U';
           }
         }
-      } catch (e) { console.log("Gagal memuat avatar header:", e); }
+      } catch (e) { console.log(e); }
 
       await initChatList();
     } else {
@@ -232,9 +262,7 @@
       const usersSnapshot = await getDocs(collection(db, "users"));
       let contacts = [];
       usersSnapshot.forEach((doc) => {
-        if (doc.id !== currentUser.uid) {
-          contacts.push({ id: doc.id, ...doc.data() });
-        }
+        if (doc.id !== currentUser.uid) contacts.push({ id: doc.id, ...doc.data() });
       });
 
       document.getElementById('total-kontak').innerText = contacts.length;
@@ -248,9 +276,7 @@
       try {
         const summarySnapshot = await getDocs(collection(db, "last_messages"));
         summarySnapshot.forEach(doc => { summaries[doc.id] = doc.data(); });
-      } catch (e) {
-        console.log("Gagal ambil ringkasan pesan:", e);
-      }
+      } catch (e) { console.log(e); }
 
       chatDataStore = [];
       contacts.forEach(contact => {
@@ -279,10 +305,7 @@
               lastTimeStr = date.getDate() + '/' + (date.getMonth()+1);
             }
           }
-
-          if (summary.senderId !== currentUser.uid && !summary.isRead) {
-            isUnread = true;
-          }
+          if (summary.senderId !== currentUser.uid && !summary.isRead) isUnread = true;
         }
 
         chatDataStore.push({ 
@@ -325,11 +348,11 @@
     }
   }
 
-  // Fungsi Render yang sudah dimodifikasi dengan filter Tab
   function renderChatListUI() {
     const container = document.getElementById('dynamic-contacts');
-    
-    // 1. Hitung Total Unread (untuk badge di tab)
+    const sectionLabel = document.querySelector('.section-label'); // Ambil label "SEMUA CHAT"
+
+    // Hitung Total Unread
     let totalUnread = chatDataStore.filter(c => c.isUnread).length;
     const unreadBadge = document.getElementById('total-unread');
     if (totalUnread > 0) {
@@ -339,69 +362,86 @@
       unreadBadge.style.display = 'none';
     }
 
-    // 2. FILTER DATA BERDASARKAN TAB YANG AKTIF
+    // Filter Data Berdasarkan Tab
     let filteredData = chatDataStore;
     if (currentTab === 'unread') {
       filteredData = chatDataStore.filter(c => c.isUnread === true);
     }
 
-    // 3. Jika tab unread kosong, tampilkan pesan teks
+    // Ubah Label Bagian Atas Sesuai Tab
+    if (currentTab === 'semua') sectionLabel.innerText = '💬 SEMUA CHAT';
+    else if (currentTab === 'unread') sectionLabel.innerText = '🔔 BELUM DIBACA';
+    else if (currentTab === 'grup') sectionLabel.innerText = '👥 DAFTAR GRUP';
+
+    // Tampilkan Pesan Kosong jika tidak ada data
     if (filteredData.length === 0) {
       if (currentTab === 'unread') {
         container.innerHTML = '<div style="text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px;">Tidak ada pesan yang belum dibaca.</div>';
-        return;
-      } else if (chatDataStore.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">Belum ada kontak terdaftar.</div>';
-        return;
+      } else {
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">Belum ada data.</div>';
       }
+      return;
     }
 
-    // 4. Urutkan dan Render
+    // Urutkan
     filteredData.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
-
     container.innerHTML = '';
+
+    // Render Setiap Item
     filteredData.forEach((data, index) => {
       const avatarClass = index % 2 === 0 ? 'v1' : 'v2';
       const name = data.contact.displayName || (data.contact.email ? data.contact.email.split('@')[0] : 'Tanpa Nama');
       
-      let avatarHTML = '';
-      if (data.contact.photoURL && data.contact.photoURL.trim() !== "") {
-        avatarHTML = `<img src="${data.contact.photoURL}" alt="${name}">`;
-      } else {
-        avatarHTML = name.charAt(0).toUpperCase();
-      }
-      
+      let avatarHTML = data.contact.photoURL ? `<img src="${data.contact.photoURL}" alt="${name}">` : name.charAt(0).toUpperCase();
       let checkPreviewHTML = '';
       if (data.lastMsgIsMe && data.lastTimestamp > 0) {
-        checkPreviewHTML = data.lastMsgIsRead 
-          ? `<span class="status-check check-read">✓✓</span>` 
-          : `<span class="status-check check-sent">✓</span>`;
+        checkPreviewHTML = data.lastMsgIsRead ? `<span class="status-check check-read">✓✓</span>` : `<span class="status-check check-sent">✓</span>`;
       }
 
       const div = document.createElement('div');
-      div.className = 'chat-item';
       div.onclick = () => {
         window.location.href = `chat.html?uid=${data.contact.id}&name=${encodeURIComponent(name)}`;
       };
-      
-      div.innerHTML = `
-        <div class="avatar-wrap online">
-          <div class="avatar ${avatarClass}">${avatarHTML}</div>
-          <div class="online-badge"></div>
-        </div>
-        <div class="chat-content">
-          <div class="chat-top">
-            <div class="chat-name ${data.isUnread ? 'unread' : ''}">${name}</div>
-            <div class="chat-time ${data.isUnread ? 'unread' : ''}">${data.lastTimeStr}</div>
+
+      // LOGIKA TAMPILAN BERDASARKAN TAB
+      if (currentTab === 'grup') {
+        // TAMPILAN KHUSUS TAB GRUP (Beda Layout)
+        div.className = 'chat-item-group';
+        div.innerHTML = `
+          <div class="group-header">
+            <div class="avatar-wrap online">
+              <div class="avatar ${avatarClass}">${avatarHTML}</div>
+              <div class="online-badge"></div>
+            </div>
+            <div class="group-name">${name}</div>
           </div>
-          <div class="chat-bottom">
-            <div class="chat-preview ${data.isUnread ? 'unread' : ''}">
-              ${checkPreviewHTML}
-              <span class="preview-text">${data.lastMessage}</span>
+          <div class="group-message-box">
+            ${data.lastMessage}
+          </div>
+        `;
+      } else {
+        // TAMPILAN NORMAL (Tab Semua & Unread)
+        div.className = 'chat-item';
+        div.innerHTML = `
+          <div class="avatar-wrap online">
+            <div class="avatar ${avatarClass}">${avatarHTML}</div>
+            <div class="online-badge"></div>
+          </div>
+          <div class="chat-content">
+            <div class="chat-top">
+              <div class="chat-name ${data.isUnread ? 'unread' : ''}">${name}</div>
+              <div class="chat-time ${data.isUnread ? 'unread' : ''}">${data.lastTimeStr}</div>
+            </div>
+            <div class="chat-bottom">
+              <div class="chat-preview ${data.isUnread ? 'unread' : ''}">
+                ${checkPreviewHTML}
+                <span class="preview-text">${data.lastMessage}</span>
+              </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
+      }
+      
       container.appendChild(div);
     });
   }
