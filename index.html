@@ -429,13 +429,18 @@
       window.scrollTo(0, 1);
     }, 100);
   });
+</script>
 
-
+<script>
   // Trik Menyembunyikan Address Bar (Hanya di Chat List)
   window.addEventListener('load', () => {
     // Geser layar 1 pixel ke atas untuk memicu auto-hide address bar
     setTimeout(() => {
       window.scrollTo(0, 1);
+      
+      // Trik tambahan: Paksa scroll pada container utama
+      const phoneEl = document.querySelector('.phone');
+      if(phoneEl) phoneEl.scrollTop = 1;
     }, 100);
   });
 
@@ -447,7 +452,6 @@
       e.preventDefault();
     }
   }, { passive: false });
-
 </script>
 </body>
 </html>
