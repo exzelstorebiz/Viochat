@@ -136,6 +136,21 @@
 
   .fab { position: absolute; bottom: 24px; right: 24px; width: 58px; height: 58px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-500), var(--orange-700)); border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4); z-index: 10; transition: transform 0.2s; }
   .fab:hover { transform: scale(1.08) rotate(90deg); }
+  
+/* Trik menyembunyikan address bar TANPA menghilangkan sudut membulat */
+html, body {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Beri sedikit jarak di atas dan bawah agar sudut membulat terlihat */
+.phone {
+  height: 95vh; /* Tidak full 100vh agar ada ruang untuk melihat sudut */
+  max-height: 800px;
+  margin: auto;
+}
 </style>
 </head>
 <body>
@@ -422,36 +437,6 @@
     });
   }
 
-
-  // Trik memaksa fullscreen (menyembunyikan address bar)
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      window.scrollTo(0, 1);
-    }, 100);
-  });
-
-
-
-  // Trik Menyembunyikan Address Bar (Hanya di Chat List)
-  window.addEventListener('load', () => {
-    // Geser layar 1 pixel ke atas untuk memicu auto-hide address bar
-    setTimeout(() => {
-      window.scrollTo(0, 1);
-      
-      // Trik tambahan: Paksa scroll pada container utama
-      const phoneEl = document.querySelector('.phone');
-      if(phoneEl) phoneEl.scrollTop = 1;
-    }, 100);
-  });
-
-  // Cegah scroll ke bawah pada body (layar utama)
-  // Agar address bar tidak muncul kembali saat user tidak sengaja scroll
-  document.body.addEventListener('touchmove', function(e) {
-    // Hanya cegah scroll jika yang di-scroll adalah body, bukan area chat-list
-    if (e.target === document.body) {
-      e.preventDefault();
-    }
-  }, { passive: false });
 </script>
 </body>
 </html>
