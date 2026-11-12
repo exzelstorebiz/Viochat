@@ -421,14 +421,33 @@
       container.appendChild(div);
     });
   }
-</script>
-<script>
+
+
   // Trik memaksa fullscreen (menyembunyikan address bar)
   window.addEventListener('load', () => {
     setTimeout(() => {
       window.scrollTo(0, 1);
     }, 100);
   });
+
+
+  // Trik Menyembunyikan Address Bar (Hanya di Chat List)
+  window.addEventListener('load', () => {
+    // Geser layar 1 pixel ke atas untuk memicu auto-hide address bar
+    setTimeout(() => {
+      window.scrollTo(0, 1);
+    }, 100);
+  });
+
+  // Cegah scroll ke bawah pada body (layar utama)
+  // Agar address bar tidak muncul kembali saat user tidak sengaja scroll
+  document.body.addEventListener('touchmove', function(e) {
+    // Hanya cegah scroll jika yang di-scroll adalah body, bukan area chat-list
+    if (e.target === document.body) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
 </script>
 </body>
 </html>
