@@ -4,18 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VioChat - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #F5F3FF; margin: 0; }
-        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.15); width: 320px; }
-        h2 { color: #6D28D9; text-align: center; margin-bottom: 20px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #EDE9FE; border-radius: 10px; box-sizing: border-box; outline: none; }
-        input:focus { border-color: #7C3AED; }
-        button { width: 100%; padding: 12px; background: #7C3AED; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button:hover { background: #6D28D9; }
-        .toggle { text-align: center; margin-top: 15px; font-size: 14px; color: #6B7280; cursor: pointer; }
-        .toggle span { color: #F97316; font-weight: bold; }
+        :root {
+            --violet-600: #7C3AED;
+            --violet-700: #6D28D9;
+            --violet-100: #EDE9FE;
+            --violet-50: #F5F3FF;
+            --orange-500: #F97316;
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+            --white: #FFFFFF;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: var(--violet-50); padding: 16px; }
+        
+        .card { background: white; padding: 30px; border-radius: 24px; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.15); width: 100%; max-width: 360px; }
+        h2 { color: var(--violet-700); text-align: center; margin-bottom: 20px; font-size: 24px; }
+        
+        input { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid var(--violet-100); border-radius: 12px; box-sizing: border-box; outline: none; font-family: inherit; font-size: 14px; transition: border 0.2s; }
+        input:focus { border-color: var(--violet-600); }
+        
+        button { width: 100%; padding: 14px; background: var(--violet-600); color: white; border: none; border-radius: 12px; font-weight: 600; font-size: 15px; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+        button:hover { background: var(--violet-700); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .toggle { text-align: center; margin-top: 15px; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+        .toggle span { color: var(--orange-500); font-weight: 600; }
+        
         .hidden { display: none; }
-        #message { text-align: center; margin-top: 10px; font-size: 13px; }
+        
+        #message { text-align: center; margin-top: 15px; font-size: 13px; font-weight: 500; line-height: 1.4; }
+        
+        /* Gaya untuk Link Lupa Password */
+        .forgot-password { text-align: right; margin-bottom: 10px; }
+        .forgot-password a { font-size: 12px; color: var(--violet-600); text-decoration: none; font-weight: 500; cursor: pointer; }
+        .forgot-password a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -23,32 +47,51 @@
 <div class="card">
     <h2 id="formTitle">Masuk</h2>
     
-    <!-- Form Login -->
+    <!-- FORM LOGIN -->
     <div id="loginForm">
         <input type="email" id="loginEmail" placeholder="Email">
         <input type="password" id="loginPassword" placeholder="Password">
-        <button onclick="login()">Masuk</button>
+        
+        <div class="forgot-password">
+            <a onclick="showForgotPassword()">Lupa Password?</a>
+        </div>
+        
+        <button onclick="login()" id="btnLogin">Masuk</button>
     </div>
 
-    <!-- Form Register -->
+    <!-- FORM REGISTER -->
     <div id="registerForm" class="hidden">
+        <input type="text" id="regName" placeholder="Nama Lengkap">
         <input type="email" id="regEmail" placeholder="Email">
         <input type="password" id="regPassword" placeholder="Password (min 6 karakter)">
         <input type="tel" id="regPhone" placeholder="Nomor HP (contoh: 628123456789)">
-        <button onclick="register()">Daftar</button>
+        <button onclick="register()" id="btnRegister">Daftar</button>
     </div>
 
-    <div class="toggle" onclick="toggleMode()">
+    <!-- FORM LUPA PASSWORD -->
+    <div id="forgotForm" class="hidden">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px; text-align: center; line-height: 1.5;">
+            Masukkan email yang terdaftar. Kami akan mengirimkan tautan untuk membuat password baru.
+        </p>
+        <input type="email" id="forgotEmail" placeholder="Masukkan Email Anda">
+        <button onclick="sendResetEmail()" id="btnReset">Kirim Email Reset</button>
+        <div class="toggle" onclick="showLogin()">
+            Kembali ke <span>Halaman Masuk</span>
+        </div>
+    </div>
+
+    <!-- TOGGLE LOGIN / REGISTER -->
+    <div class="toggle" id="toggleTextContainer" onclick="toggleMode()">
         <span id="toggleText">Belum punya akun? Daftar</span>
     </div>
+    
     <div id="message"></div>
 </div>
 
-<!-- Firebase SDK -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // GANTI DENGAN CONFIG ANDA
     const firebaseConfig = {
@@ -65,88 +108,157 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // --- Logika UI ---
-    let isLoginMode = true;
+    // --- Elemen UI ---
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
+    const forgotForm = document.getElementById('forgotForm');
     const formTitle = document.getElementById('formTitle');
     const toggleText = document.getElementById('toggleText');
+    const toggleContainer = document.getElementById('toggleTextContainer');
     const messageEl = document.getElementById('message');
+    
+    let isLoginMode = true;
 
+    // --- Navigasi Form ---
     window.toggleMode = () => {
         isLoginMode = !isLoginMode;
-        loginForm.classList.toggle('hidden');
-        registerForm.classList.toggle('hidden');
+        loginForm.classList.toggle('hidden', !isLoginMode);
+        registerForm.classList.toggle('hidden', isLoginMode);
+        forgotForm.classList.add('hidden');
+        
         formTitle.innerText = isLoginMode ? 'Masuk' : 'Daftar';
         toggleText.innerText = isLoginMode ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk';
+        toggleContainer.classList.remove('hidden');
         messageEl.innerText = '';
     };
 
-    // --- Register (Email + Simpan HP ke Firestore) ---
+    window.showForgotPassword = () => {
+        loginForm.classList.add('hidden');
+        registerForm.classList.add('hidden');
+        forgotForm.classList.remove('hidden');
+        toggleContainer.classList.add('hidden');
+        
+        formTitle.innerText = 'Lupa Password';
+        messageEl.innerText = '';
+    };
+
+    window.showLogin = () => {
+        forgotForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+        toggleContainer.classList.remove('hidden');
+        
+        formTitle.innerText = 'Masuk';
+        isLoginMode = true;
+        toggleText.innerText = 'Belum punya akun? Daftar';
+        messageEl.innerText = '';
+    };
+
+    // --- Fungsi Register ---
     window.register = async () => {
+        const name = document.getElementById('regName').value;
         const email = document.getElementById('regEmail').value;
         const password = document.getElementById('regPassword').value;
         const phone = document.getElementById('regPhone').value;
+        const btn = document.getElementById('btnRegister');
 
-        if (!email || !password || !phone) {
+        if (!name || !email || !password || !phone) {
             messageEl.innerText = 'Semua kolom wajib diisi.';
+            messageEl.style.color = 'red';
             return;
         }
-        messageEl.innerText = 'Memproses...';
+
+        btn.disabled = true;
+        btn.innerText = "Memproses...";
+        messageEl.innerText = '';
 
         try {
-            // 1. Buat akun di Firebase Auth (Email)
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // 2. Simpan Nomor HP ke Firestore (ID Dokumen = UID)
-            // Ini yang nanti dipakai untuk pencarian kontak
             await setDoc(doc(db, "users", user.uid), {
+                displayName: name,
                 email: email,
-                phoneNumber: phone, // Simpan nomor HP di sini
+                phoneNumber: phone,
                 createdAt: new Date()
             });
 
             messageEl.innerText = 'Registrasi berhasil! Silakan masuk.';
             messageEl.style.color = 'green';
-            toggleMode(); // Kembali ke form login
+            toggleMode(); 
             
         } catch (error) {
             messageEl.innerText = 'Error: ' + error.message;
             messageEl.style.color = 'red';
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Daftar";
         }
     };
 
-    // --- Login (Email) ---
+    // --- Fungsi Login ---
     window.login = async () => {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
+        const btn = document.getElementById('btnLogin');
         
         if (!email || !password) {
             messageEl.innerText = 'Email dan password wajib diisi.';
+            messageEl.style.color = 'red';
             return;
         }
-        messageEl.innerText = 'Memproses...';
+
+        btn.disabled = true;
+        btn.innerText = "Memproses...";
+        messageEl.innerText = '';
 
         try {
             await signInWithEmailAndPassword(auth, email, password);
             messageEl.innerText = 'Login berhasil! Mengalihkan...';
             messageEl.style.color = 'green';
-            // Di sini Anda bisa mengalihkan ke halaman chat
-            window.location.href = 'index.html'; 
+            window.location.href = 'splash.html'; 
         } catch (error) {
-            messageEl.innerText = 'Login gagal: ' + error.message;
+            messageEl.innerText = 'Login gagal: Email atau Password salah.';
             messageEl.style.color = 'red';
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Masuk";
         }
     };
 
-    // Cek status login (opsional)
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            console.log("User aktif:", user.email);
-            // Jika sudah login, bisa langsung arahkan ke chat
+    // --- Fungsi Lupa Password (BARU) ---
+    window.sendResetEmail = async () => {
+        const email = document.getElementById('forgotEmail').value;
+        const btn = document.getElementById('btnReset');
+
+        if (!email) {
+            messageEl.innerText = 'Masukkan email Anda terlebih dahulu.';
+            messageEl.style.color = 'red';
+            return;
         }
-    });
+
+        btn.disabled = true;
+        btn.innerText = "Mengirim...";
+        messageEl.innerText = '';
+
+        try {
+            await sendPasswordResetEmail(auth, email);
+            messageEl.innerText = 'Email reset password telah dikirim! Silakan cek Kotak Masuk atau folder Spam Anda.';
+            messageEl.style.color = 'green';
+            document.getElementById('forgotEmail').value = '';
+        } catch (error) {
+            // Firebase sengaja tidak memberi tahu jika email tidak terdaftar (untuk keamanan)
+            if (error.code === 'auth/user-not-found') {
+                messageEl.innerText = 'Jika email terdaftar, tautan reset telah dikirim. Cek email Anda.';
+                messageEl.style.color = 'green';
+            } else {
+                messageEl.innerText = 'Gagal: ' + error.message;
+                messageEl.style.color = 'red';
+            }
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Kirim Email Reset";
+        }
+    };
 </script>
 
 </body>
