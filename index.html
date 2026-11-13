@@ -168,7 +168,7 @@
   <div class="tabs">
     <div class="tab active" id="tab-semua" onclick="switchTab('semua')">Semua <span class="badge" id="total-kontak">0</span></div>
     <div class="tab" id="tab-unread" onclick="switchTab('unread')">Belum Dibaca <span class="badge" id="total-unread" style="display:none; background:var(--violet-600);">0</span></div>
-    <div class="tab" id="tab-grup" onclick="switchTab('grup')">Grup</div>
+    <div class="tab" id="tab-grup" onclick="window.location.href='group-chat.html'">Grup</div>
   </div>
 
   <div class="chat-list" id="chat-list-container">
@@ -223,11 +223,11 @@
     
     document.getElementById('tab-semua').classList.remove('active');
     document.getElementById('tab-unread').classList.remove('active');
-    document.getElementById('tab-grup').classList.remove('active');
+  
     
     if (tab === 'semua') document.getElementById('tab-semua').classList.add('active');
     if (tab === 'unread') document.getElementById('tab-unread').classList.add('active');
-    if (tab === 'grup') document.getElementById('tab-grup').classList.add('active');
+    
     
     renderChatListUI();
   };
@@ -371,7 +371,7 @@
     // Ubah Label Bagian Atas Sesuai Tab
     if (currentTab === 'semua') sectionLabel.innerText = '💬 SEMUA CHAT';
     else if (currentTab === 'unread') sectionLabel.innerText = '🔔 BELUM DIBACA';
-    else if (currentTab === 'grup') sectionLabel.innerText = '👥 DAFTAR GRUP';
+    
 
     // Tampilkan Pesan Kosong jika tidak ada data
     if (filteredData.length === 0) {
