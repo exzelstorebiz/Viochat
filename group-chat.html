@@ -25,13 +25,7 @@
   .chat-header-name { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chat-header-status { font-size: 12px; opacity: 0.85; display: flex; align-items: center; gap: 5px; }
 
-  .bg-aurora {
-    background-color: #f8f6ff;
-    background-image: 
-      radial-gradient(ellipse at top left, rgba(139, 92, 246, 0.25) 0%, transparent 60%),
-      radial-gradient(ellipse at bottom right, rgba(249, 115, 22, 0.15) 0%, transparent 60%),
-      radial-gradient(ellipse at center, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
-  }
+  .bg-aurora { background-color: #f8f6ff; background-image: radial-gradient(ellipse at top left, rgba(139, 92, 246, 0.25) 0%, transparent 60%), radial-gradient(ellipse at bottom right, rgba(249, 115, 22, 0.15) 0%, transparent 60%), radial-gradient(ellipse at center, rgba(59, 130, 246, 0.1) 0%, transparent 70%); }
 
   .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; position: relative; }
   .date-divider { align-self: center; background: var(--violet-100); color: var(--violet-700); font-size: 11px; font-weight: 600; padding: 4px 14px; border-radius: 20px; margin: 8px 0; }
@@ -53,23 +47,6 @@
   .input-wrapper { flex: 1; background: var(--violet-100); border-radius: 24px; display: flex; align-items: center; padding: 4px 6px 4px 16px; }
   .input-wrapper input { flex: 1; border: none; background: transparent; outline: none; font-size: 14.5px; padding: 10px 0; color: var(--text); font-family: inherit; }
   .send-btn { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-500), var(--orange-700)); border: none; color: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(249, 115, 22, 0.4); }
-
-/* === EFEK TRANSISI HALAMAN (FADE & SLIDE UP) === */
-@keyframes pageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Terapkan animasi ke kontainer utama (kotak HP) */
-.phone, .card, .splash-container {
-  animation: pageEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
 </style>
 </head>
 <body>
@@ -89,26 +66,52 @@
   </div>
 
   <div class="chat-input-area">
-    <div class="input-wrapper">
-      <input type="text" id="chatInput" placeholder="Ketik pesan grup...">
-    </div>
+    <div class="input-wrapper"><input type="text" id="chatInput" placeholder="Ketik pesan grup..."></div>
     <button class="send-btn" onclick="window.sendMsg()">➤</button>
   </div>
 </div>
 
 <script type="module">
+  // === FUNGSI NADA NOTIFIKASI (CHIME) ===
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AudioContext();
+
+  function playNotificationSound() {
+    if (document.hidden) return; 
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    function playNote(frequency, startTime, duration, type = 'triangle') {
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.type = type;
+      oscillator.frequency.value = frequency;
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    }
+
+    const now = audioCtx.currentTime;
+    playNote(1318.5, now, 0.4);       
+    playNote(1046.5, now + 0.15, 0.4); 
+    playNote(880, now + 0.3, 0.6);     
+  }
+  // =====================================
+
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
-  apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
-  authDomain: "viochat-2528a.firebaseapp.com",
-  projectId: "viochat-2528a",
-  storageBucket: "viochat-2528a.firebasestorage.app",
-  messagingSenderId: "296507148175",
-  appId: "1:296507148175:web:933c3fd682999649726dfa",
-  measurementId: "G-3B8DYF9Z96"
+    apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
+    authDomain: "viochat-2528a.firebaseapp.com",
+    projectId: "viochat-2528a",
+    storageBucket: "viochat-2528a.firebasestorage.app",
+    messagingSenderId: "296507148175",
+    appId: "1:296507148175:web:933c3fd682999649726dfa"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -121,14 +124,12 @@
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
-      
       try {
         const usersSnapshot = await getDocs(collection(db, "users"));
         document.getElementById('member-count').innerText = `${usersSnapshot.size} anggota`;
       } catch (e) {
         document.getElementById('member-count').innerText = `Anggota`;
       }
-
       loadGroupMessages();
     } else {
       window.location.href = "vio-login.html";
@@ -147,6 +148,15 @@
     onSnapshot(q, (snapshot) => {
       msgContainer.innerHTML = '';
       let lastDateString = "";
+
+      // --- LOGIKA SUARA NOTIFIKASI GRUP ---
+      let hasNewGroupMessage = false;
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added" && change.doc.data().senderId !== currentUser.uid) {
+           hasNewGroupMessage = true;
+        }
+      });
+      // ------------------------------------
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
@@ -196,6 +206,8 @@
         msgContainer.appendChild(msgGroupDiv);
       });
 
+      if (hasNewGroupMessage) playNotificationSound(); // Panggil suara
+
       msgContainer.scrollTop = msgContainer.scrollHeight;
     });
   }
@@ -214,11 +226,7 @@
       const senderPhoto = userData.photoURL || "";
 
       await addDoc(collection(db, "groups", GROUP_ID, "messages"), {
-        text: text,
-        senderId: currentUser.uid,
-        senderName: senderName,
-        senderPhoto: senderPhoto,
-        createdAt: serverTimestamp()
+        text: text, senderId: currentUser.uid, senderName: senderName, senderPhoto: senderPhoto, createdAt: serverTimestamp()
       });
     } catch (error) {
       console.error("Gagal kirim:", error);
@@ -230,6 +238,5 @@
     if (e.key === 'Enter') window.sendMsg();
   });
 </script>
-
 </body>
 </html>
