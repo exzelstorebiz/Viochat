@@ -101,7 +101,7 @@
   /* === GAYA KHUSUS UNTUK TAB GRUP (Beda Tampilan) === */
   .chat-item-group {
     display: flex;
-    flex-direction: column; /* Susun ke bawah */
+    flex-direction: column;
     align-items: flex-start;
     gap: 8px;
     padding: 16px 20px;
@@ -109,27 +109,10 @@
     cursor: pointer;
   }
   .chat-item-group:hover { background: var(--violet-50); }
-  .group-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-  }
+  .group-header { display: flex; align-items: center; gap: 12px; width: 100%; }
   .group-header .avatar { width: 44px; height: 44px; font-size: 16px; }
-  .group-name {
-    font-weight: 700;
-    font-size: 15px;
-    color: var(--violet-800);
-  }
-  .group-message-box {
-    background: var(--violet-50);
-    padding: 10px 14px;
-    border-radius: 12px;
-    width: 100%;
-    font-size: 13.5px;
-    color: var(--text);
-    border-left: 3px solid var(--violet-500);
-  }
+  .group-name { font-weight: 700; font-size: 15px; color: var(--violet-800); }
+  .group-message-box { background: var(--violet-50); padding: 10px 14px; border-radius: 12px; width: 100%; font-size: 13.5px; color: var(--text); border-left: 3px solid var(--violet-500); }
 
   .fab { position: absolute; bottom: 24px; right: 24px; width: 58px; height: 58px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-500), var(--orange-700)); border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4); z-index: 10; transition: transform 0.2s; }
   .fab:hover { transform: scale(1.08) rotate(90deg); }
@@ -197,16 +180,15 @@
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
-  apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
-  authDomain: "viochat-2528a.firebaseapp.com",
-  projectId: "viochat-2528a",
-  storageBucket: "viochat-2528a.firebasestorage.app",
-  messagingSenderId: "296507148175",
-  appId: "1:296507148175:web:933c3fd682999649726dfa",
-  measurementId: "G-3B8DYF9Z96"
+    apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
+    authDomain: "viochat-2528a.firebaseapp.com",
+    projectId: "viochat-2528a",
+    storageBucket: "viochat-2528a.firebasestorage.app",
+    messagingSenderId: "296507148175",
+    appId: "1:296507148175:web:933c3fd682999649726dfa"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -223,11 +205,9 @@
     
     document.getElementById('tab-semua').classList.remove('active');
     document.getElementById('tab-unread').classList.remove('active');
-  
     
     if (tab === 'semua') document.getElementById('tab-semua').classList.add('active');
     if (tab === 'unread') document.getElementById('tab-unread').classList.add('active');
-    
     
     renderChatListUI();
   };
@@ -251,7 +231,8 @@
       } catch (e) { console.log(e); }
 
       await initChatList();
-listenToGroupUnread(); // <--- TAMBAHKAN BARIS INI
+      listenToGroupUnread(); // Memanggil fungsi pemantau grup
+      
     } else {
       setTimeout(() => { if (!auth.currentUser) window.location.href = "vio-login.html"; }, 1500);
     }
@@ -351,7 +332,7 @@ listenToGroupUnread(); // <--- TAMBAHKAN BARIS INI
 
   function renderChatListUI() {
     const container = document.getElementById('dynamic-contacts');
-    const sectionLabel = document.querySelector('.section-label'); // Ambil label "SEMUA CHAT"
+    const sectionLabel = document.querySelector('.section-label');
 
     // Hitung Total Unread
     let totalUnread = chatDataStore.filter(c => c.isUnread).length;
@@ -369,12 +350,11 @@ listenToGroupUnread(); // <--- TAMBAHKAN BARIS INI
       filteredData = chatDataStore.filter(c => c.isUnread === true);
     }
 
-    // Ubah Label Bagian Atas Sesuai Tab
+    // Ubah Label Bagian Atas
     if (currentTab === 'semua') sectionLabel.innerText = '💬 SEMUA CHAT';
     else if (currentTab === 'unread') sectionLabel.innerText = '🔔 BELUM DIBACA';
-    
 
-    // Tampilkan Pesan Kosong jika tidak ada data
+    // Tampilkan Pesan Kosong
     if (filteredData.length === 0) {
       if (currentTab === 'unread') {
         container.innerHTML = '<div style="text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px;">Tidak ada pesan yang belum dibaca.</div>';
@@ -384,11 +364,9 @@ listenToGroupUnread(); // <--- TAMBAHKAN BARIS INI
       return;
     }
 
-    // Urutkan
     filteredData.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
     container.innerHTML = '';
 
-    // Render Setiap Item
     filteredData.forEach((data, index) => {
       const avatarClass = index % 2 === 0 ? 'v1' : 'v2';
       const name = data.contact.displayName || (data.contact.email ? data.contact.email.split('@')[0] : 'Tanpa Nama');
@@ -403,85 +381,64 @@ listenToGroupUnread(); // <--- TAMBAHKAN BARIS INI
       div.onclick = () => {
         window.location.href = `chat.html?uid=${data.contact.id}&name=${encodeURIComponent(name)}`;
       };
-
-      // LOGIKA TAMPILAN BERDASARKAN TAB
-      if (currentTab === 'grup') {
-        // TAMPILAN KHUSUS TAB GRUP (Beda Layout)
-        div.className = 'chat-item-group';
-        div.innerHTML = `
-          <div class="group-header">
-            <div class="avatar-wrap online">
-              <div class="avatar ${avatarClass}">${avatarHTML}</div>
-              <div class="online-badge"></div>
-            </div>
-            <div class="group-name">${name}</div>
+      
+      // TAMPILAN NORMAL (Tab Semua & Unread)
+      div.className = 'chat-item';
+      div.innerHTML = `
+        <div class="avatar-wrap online">
+          <div class="avatar ${avatarClass}">${avatarHTML}</div>
+          <div class="online-badge"></div>
+        </div>
+        <div class="chat-content">
+          <div class="chat-top">
+            <div class="chat-name ${data.isUnread ? 'unread' : ''}">${name}</div>
+            <div class="chat-time ${data.isUnread ? 'unread' : ''}">${data.lastTimeStr}</div>
           </div>
-          <div class="group-message-box">
-            ${data.lastMessage}
-          </div>
-        `;
-      } else {
-        // TAMPILAN NORMAL (Tab Semua & Unread)
-        div.className = 'chat-item';
-        div.innerHTML = `
-          <div class="avatar-wrap online">
-            <div class="avatar ${avatarClass}">${avatarHTML}</div>
-            <div class="online-badge"></div>
-          </div>
-          <div class="chat-content">
-            <div class="chat-top">
-              <div class="chat-name ${data.isUnread ? 'unread' : ''}">${name}</div>
-              <div class="chat-time ${data.isUnread ? 'unread' : ''}">${data.lastTimeStr}</div>
-            </div>
-            <div class="chat-bottom">
-              <div class="chat-preview ${data.isUnread ? 'unread' : ''}">
-                ${checkPreviewHTML}
-                <span class="preview-text">${data.lastMessage}</span>
-              </div>
+          <div class="chat-bottom">
+            <div class="chat-preview ${data.isUnread ? 'unread' : ''}">
+              ${checkPreviewHTML}
+              <span class="preview-text">${data.lastMessage}</span>
             </div>
           </div>
-        `;
-      }
+        </div>
+      `;
       
       container.appendChild(div);
     });
   }
+
   // === FUNGSI MEMANTAU PESAN GRUP YANG BELUM DIBACA ===
-async function listenToGroupUnread() {
-  const GROUP_ID = "keluarga_mbah_papi";
-  const groupBadge = document.getElementById('total-unread-group');
+  async function listenToGroupUnread() {
+    const GROUP_ID = "keluarga_mbah_papi";
+    const groupBadge = document.getElementById('total-unread-group');
 
-  // Dengarkan perubahan pesan di grup secara real-time
-  const q = query(collection(db, "groups", GROUP_ID, "messages"), orderBy("createdAt", "desc"));
-  
-  onSnapshot(q, async (snapshot) => {
-    // 1. Ambil waktu terakhir kali user membuka grup
-    const readRef = doc(db, "groups", GROUP_ID, "read_status", currentUser.uid);
-    const readSnap = await getDoc(readRef);
-    let lastReadTime = readSnap.exists() ? readSnap.data().lastReadAt.toMillis() : 0;
-
-    let unreadCount = 0;
+    const q = query(collection(db, "groups", GROUP_ID, "messages"), orderBy("createdAt", "desc"));
     
-    // 2. Hitung berapa pesan yang masuk setelah lastReadTime
-    snapshot.forEach((docSnap) => {
-      const msgData = docSnap.data();
-      if (msgData.senderId !== currentUser.uid && msgData.createdAt) {
-        const msgTime = msgData.createdAt.toMillis();
-        if (msgTime > lastReadTime) {
-          unreadCount++;
+    onSnapshot(q, async (snapshot) => {
+      const readRef = doc(db, "groups", GROUP_ID, "read_status", currentUser.uid);
+      const readSnap = await getDoc(readRef);
+      let lastReadTime = readSnap.exists() ? readSnap.data().lastReadAt.toMillis() : 0;
+
+      let unreadCount = 0;
+      
+      snapshot.forEach((docSnap) => {
+        const msgData = docSnap.data();
+        if (msgData.senderId !== currentUser.uid && msgData.createdAt) {
+          const msgTime = msgData.createdAt.toMillis();
+          if (msgTime > lastReadTime) {
+            unreadCount++;
+          }
         }
+      });
+
+      if (unreadCount > 0) {
+        groupBadge.style.display = 'inline-block';
+        groupBadge.innerText = unreadCount;
+      } else {
+        groupBadge.style.display = 'none';
       }
     });
-
-    // 3. Tampilkan badge jika ada pesan belum dibaca
-    if (unreadCount > 0) {
-      groupBadge.style.display = 'inline-block';
-      groupBadge.innerText = unreadCount;
-    } else {
-      groupBadge.style.display = 'none';
-    }
-  });
-}
+  }
 </script>
 
 </body>
