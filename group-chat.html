@@ -27,6 +27,7 @@
 
   .bg-aurora { background-color: #f8f6ff; background-image: radial-gradient(ellipse at top left, rgba(139, 92, 246, 0.25) 0%, transparent 60%), radial-gradient(ellipse at bottom right, rgba(249, 115, 22, 0.15) 0%, transparent 60%), radial-gradient(ellipse at center, rgba(59, 130, 246, 0.1) 0%, transparent 70%); }
 
+  /* PERBAIKAN: chat-messages sekarang memiliki flex:1 dan posisi relative */
   .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; position: relative; }
   .date-divider { align-self: center; background: var(--violet-100); color: var(--violet-700); font-size: 11px; font-weight: 600; padding: 4px 14px; border-radius: 20px; margin: 8px 0; }
   
@@ -44,11 +45,12 @@
   .check-icon { font-size: 12px; font-weight: bold; color: var(--orange-400); }
 
   /* === INDIKATOR TYPING GRUP (MELAYANG) === */
+  /* PERBAIKAN: Dipindahkan ke luar chat-messages, posisi absolute terhadap .phone */
   .typing-indicator-wrapper {
     position: absolute;
-    bottom: 75px; 
+    bottom: 80px; /* Jarak dari bawah, di atas input */
     left: 16px;
-    z-index: 5;
+    z-index: 20; /* Pastikan di atas chat */
     display: none;
     flex-direction: column;
     align-items: flex-start;
@@ -116,18 +118,17 @@
 
   <div class="chat-messages bg-aurora" id="chat-messages">
     <div class="date-divider">Memuat pesan grup...</div>
+  </div>
 
-    <!-- INDIKATOR TYPING GRUP -->
-    <div class="typing-indicator-wrapper" id="typing-indicator">
-      <div class="typing-avatars" id="typing-avatars-container"></div>
-      <div class="typing-info" id="typing-info-container">
-        <div class="typing-name" id="typing-name"></div>
-        <div class="typing-bubble">
-          <div class="typing-dots"><span></span><span></span><span></span></div>
-        </div>
+  <!-- INDIKATOR TYPING GRUP DIPINDAHKAN KE LUAR CHAT-MESSAGES -->
+  <div class="typing-indicator-wrapper" id="typing-indicator">
+    <div class="typing-avatars" id="typing-avatars-container"></div>
+    <div class="typing-info" id="typing-info-container">
+      <div class="typing-name" id="typing-name"></div>
+      <div class="typing-bubble">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
       </div>
     </div>
-
   </div>
 
   <div class="chat-input-area">
@@ -183,16 +184,14 @@
     if (user) {
       currentUser = user;
       
-      // 1. Hitung Anggota
       try {
         const usersSnapshot = await getDocs(collection(db, "users"));
         document.getElementById('member-count').innerText = `${usersSnapshot.size} anggota`;
       } catch (e) { document.getElementById('member-count').innerText = `Anggota`; }
       
-      // 2. Muat Pesan & Fitur Typing
       loadGroupMessages();
       setupGroupTyping();
-      listenToGroupTyping();
+      listenToGroupTyping(); // <--- Sekarang dipanggil setelah semua siap
       
     } else {
       window.location.href = "vio-login.html";
@@ -207,14 +206,7 @@
     const q = query(collection(db, "groups", GROUP_ID, "messages"), orderBy("createdAt", "asc"));
 
     onSnapshot(q, (snapshot) => {
-      // Simpan referensi elemen typing SEBELUM kontainer dibersihkan
-      let typingIndicator = document.getElementById('typing-indicator');
-      
-      msgContainer.innerHTML = '';
-      
-      // Kembalikan elemen typing ke dalam kontainer
-      if (typingIndicator) msgContainer.appendChild(typingIndicator);
-
+      msgContainer.innerHTML = ''; // Sekarang aman, karena typing indicator ada di luar
       let lastDateString = "";
       let hasNewGroupMessage = false;
 
@@ -242,9 +234,7 @@
           if (dateLabel !== lastDateString) {
             const divider = document.createElement('div');
             divider.className = 'date-divider'; divider.innerText = dateLabel;
-            // Sisipkan divider sebelum typing indicator agar urutannya rapi
-            if (typingIndicator) msgContainer.insertBefore(divider, typingIndicator);
-            else msgContainer.appendChild(divider);
+            msgContainer.appendChild(divider);
             lastDateString = dateLabel;
           }
         }
@@ -265,10 +255,7 @@
             </div>
           </div>
         `;
-        
-        // Sisipkan pesan sebelum typing indicator
-        if (typingIndicator) msgContainer.insertBefore(msgGroupDiv, typingIndicator);
-        else msgContainer.appendChild(msgGroupDiv);
+        msgContainer.appendChild(msgGroupDiv);
       });
 
       if (hasNewGroupMessage) playNotificationSound();
@@ -276,7 +263,6 @@
     });
   }
 
-  // === 1. MENGIRIM SINYAL TYPING ===
   function setupGroupTyping() {
     const inputField = document.getElementById('chatInput');
     const typingRef = doc(db, "groups", GROUP_ID, "typing", currentUser.uid);
@@ -302,7 +288,6 @@
     });
   }
 
-  // === 2. MENERIMA & MERENDER SINYAL TYPING ===
   function listenToGroupTyping() {
     const typingContainer = document.getElementById('typing-indicator');
     const avatarsContainer = document.getElementById('typing-avatars-container');
@@ -314,7 +299,7 @@
     onSnapshot(q, (snapshot) => {
       let typers = [];
       snapshot.forEach((doc) => {
-        if (doc.id !== currentUser.uid) { // Jangan tampilkan diri sendiri
+        if (doc.id !== currentUser.uid) {
           typers.push(doc.data());
         }
       });
@@ -327,12 +312,10 @@
       typingContainer.style.display = 'flex';
 
       if (typers.length === 1) {
-        // KONDISI 1: Satu Orang (Nama + Bubble)
         infoContainer.style.display = 'flex';
         avatarsContainer.style.display = 'none';
         nameEl.innerText = typers[0].name;
       } else {
-        // KONDISI 2+: Banyak Orang (Avatar Berjejer + Bubble)
         infoContainer.style.display = 'none';
         avatarsContainer.style.display = 'flex';
         avatarsContainer.innerHTML = '';
@@ -353,7 +336,6 @@
     });
   }
 
-  // === 3. KIRIM PESAN ===
   window.sendMsg = async () => {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
