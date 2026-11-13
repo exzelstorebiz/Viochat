@@ -15,31 +15,18 @@
     --text: #1F2937; --text-muted: #6B7280; --white: #FFFFFF; --green: #4ADE80;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { 
-    font-family: 'Inter', sans-serif; 
-    background: var(--violet-50); 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    min-height: 100vh; 
-    padding: 16px; 
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-  }
+  body { font-family: 'Inter', sans-serif; background: var(--violet-50); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
   .phone { width: 100%; max-width: 420px; height: 90vh; max-height: 800px; background: var(--white); border-radius: 32px; overflow: hidden; box-shadow: 0 25px 60px -12px rgba(91, 33, 182, 0.35); display: flex; flex-direction: column; position: relative; }
   
   .chat-header { background: linear-gradient(135deg, var(--violet-600) 0%, var(--violet-800) 100%); padding: 16px 20px; color: white; display: flex; align-items: center; gap: 12px; flex-shrink: 0; z-index: 10; }
   .back-btn { font-size: 24px; cursor: pointer; padding-right: 8px; display: flex; align-items: center; }
-  
   .chat-header .avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-400), var(--orange-600)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; overflow: hidden; flex-shrink: 0; }
   .chat-header .avatar img { width: 100%; height: 100%; object-fit: cover; }
-  
   .chat-header-info { flex: 1; min-width: 0; }
   .chat-header-name { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chat-header-status { font-size: 12px; opacity: 0.85; display: flex; align-items: center; gap: 5px; }
   .online-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; }
 
-  /* === BACKGROUND AURORA BOREALIS === */
   .bg-aurora {
     background-color: #f8f6ff;
     background-image: 
@@ -53,46 +40,16 @@
   .msg { max-width: 78%; padding: 10px 14px; font-size: 14.5px; line-height: 1.45; animation: pop 0.25s ease; display: flex; flex-direction: column; }
   @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   
-  /* Bubble Diterima (Flat Shadow) */
-  .msg.received { 
-    align-self: flex-start; 
-    background: var(--white); 
-    border-radius: 18px 18px 18px 4px; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  }
-  
-  /* Bubble Dikirim (Flat Shadow) */
-  .msg.sent { 
-    align-self: flex-end; 
-    color: white; 
-    border-radius: 18px 18px 4px 18px; 
-    background: var(--violet-600);
-    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3), inset 0 1px 1px rgba(255,255,255,0.2);
-    border: 1px solid rgba(0,0,0,0.05);
-  }
+  .msg.received { align-self: flex-start; background: var(--white); border-radius: 18px 18px 18px 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); }
+  .msg.sent { align-self: flex-end; color: white; border-radius: 18px 18px 4px 18px; background: var(--violet-600); box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3), inset 0 1px 1px rgba(255,255,255,0.2); border: 1px solid rgba(0,0,0,0.05); }
   
   .msg .time { font-size: 10px; opacity: 0.8; margin-top: 4px; text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
-  
   .check-icon { font-size: 12px; font-weight: bold; }
   .check-read { color: var(--orange-400); }
   .check-unread { color: rgba(255, 255, 255, 0.6); }
 
-  /* === TYPING BUBBLE (Di dalam alur chat) === */
-  .typing-indicator-wrapper {
-    display: none;
-    align-self: flex-start;
-    margin-top: 4px;
-    margin-bottom: 4px;
-  }
-  .typing-bubble {
-    padding: 12px 16px;
-    background: var(--white);
-    border-radius: 18px 18px 18px 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-    display: flex;
-    align-items: center;
-    width: fit-content;
-  }
+  .typing-indicator-wrapper { display: none; align-self: flex-start; margin-top: 4px; margin-bottom: 4px; }
+  .typing-bubble { padding: 12px 16px; background: var(--white); border-radius: 18px 18px 18px 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); display: flex; align-items: center; width: fit-content; }
   .typing-dots { display: flex; gap: 4px; align-items: center; height: 14px; }
   .typing-dots span { width: 7px; height: 7px; background-color: var(--violet-500); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
   .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
@@ -105,23 +62,6 @@
   .input-wrapper input { flex: 1; border: none; background: transparent; outline: none; font-size: 14.5px; padding: 10px 0; color: var(--text); font-family: inherit; }
   .send-btn { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-500), var(--orange-700)); border: none; color: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(249, 115, 22, 0.4); }
   .send-btn:active { transform: scale(0.95); }
-
-/* === EFEK TRANSISI HALAMAN (FADE & SLIDE UP) === */
-@keyframes pageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Terapkan animasi ke kontainer utama (kotak HP) */
-.phone, .card, .splash-container {
-  animation: pageEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
 </style>
 </head>
 <body>
@@ -136,42 +76,60 @@
     </div>
   </div>
 
-  <!-- Area Chat dengan background Aurora -->
   <div class="chat-messages bg-aurora" id="chat-messages">
     <div class="date-divider" id="loading-text">Memuat pesan...</div>
-    
-    <!-- TYPING INDICATOR WRAPPER (Sekarang ada di dalam chat) -->
     <div class="typing-indicator-wrapper" id="typing-wrapper">
-      <div class="typing-bubble">
-        <div class="typing-dots">
-          <span></span><span></span><span></span>
-        </div>
-      </div>
+      <div class="typing-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>
     </div>
   </div>
 
   <div class="chat-input-area">
-    <div class="input-wrapper">
-      <input type="text" id="chatInput" placeholder="Ketik pesan...">
-    </div>
+    <div class="input-wrapper"><input type="text" id="chatInput" placeholder="Ketik pesan..."></div>
     <button class="send-btn" onclick="window.sendMsg()">➤</button>
   </div>
 </div>
 
 <script type="module">
+  // === FUNGSI NADA NOTIFIKASI (CHIME) ===
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AudioContext();
+
+  function playNotificationSound() {
+    if (document.hidden) return; 
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    function playNote(frequency, startTime, duration, type = 'triangle') {
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.type = type;
+      oscillator.frequency.value = frequency;
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    }
+
+    const now = audioCtx.currentTime;
+    playNote(1318.5, now, 0.4);       
+    playNote(1046.5, now + 0.15, 0.4); 
+    playNote(880, now + 0.3, 0.6);     
+  }
+  // =====================================
+
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // --- KONFIGURASI FIREBASE ANDA ---
   const firebaseConfig = {
-  apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
-  authDomain: "viochat-2528a.firebaseapp.com",
-  projectId: "viochat-2528a",
-  storageBucket: "viochat-2528a.firebasestorage.app",
-  messagingSenderId: "296507148175",
-  appId: "1:296507148175:web:933c3fd682999649726dfa",
-  measurementId: "G-3B8DYF9Z96"
+    apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
+    authDomain: "viochat-2528a.firebaseapp.com",
+    projectId: "viochat-2528a",
+    storageBucket: "viochat-2528a.firebasestorage.app",
+    messagingSenderId: "296507148175",
+    appId: "1:296507148175:web:933c3fd682999649726dfa"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -183,7 +141,6 @@
   let roomId = null;
   let typingTimeout = null;
 
-  // Ambil Parameter dari URL
   const urlParams = new URLSearchParams(window.location.search);
   targetUid = urlParams.get('uid');
   const targetName = urlParams.get('name') || 'Kontak';
@@ -197,52 +154,48 @@
 
       roomId = [currentUser.uid, targetUid].sort().join("_");
       
-      // 1. MUAT FOTO PROFIL (DENGAN ANTI-CACHE)
-try {
-  const targetDoc = await getDoc(doc(db, "users", targetUid));
-  const avatarEl = document.getElementById('chat-avatar');
-  
-  if (targetDoc.exists() && targetDoc.data().photoURL) {
-    const imageUrl = targetDoc.data().photoURL;
-    // Tambahkan timestamp agar browser tidak menyimpan cache gambar lama
-    const freshImageUrl = `${imageUrl}?t=${Date.now()}`; 
-    
-    avatarEl.style.background = "transparent";
-    avatarEl.innerHTML = `<img src="${freshImageUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-  } else {
-    avatarEl.innerText = targetName.charAt(0).toUpperCase();
-  }
-} catch (e) {
+      try {
+        const targetDoc = await getDoc(doc(db, "users", targetUid));
+        const avatarEl = document.getElementById('chat-avatar');
+        if (targetDoc.exists() && targetDoc.data().photoURL) {
+          avatarEl.style.background = "transparent";
+          avatarEl.innerHTML = `<img src="${targetDoc.data().photoURL}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+        } else {
+          avatarEl.innerText = targetName.charAt(0).toUpperCase();
+        }
+      } catch (e) {
         document.getElementById('chat-avatar').innerText = targetName.charAt(0).toUpperCase();
       }
 
-      // 2. MUAT PESAN & JALANKAN TYPING
       loadMessages();
       setupTyping();
-
     } else {
       setTimeout(() => { if (!auth.currentUser) window.location.href = "vio-login.html"; }, 1500);
     }
   });
 
-  // === FUNGSI MEMUAT PESAN ===
   function loadMessages() {
     const msgContainer = document.getElementById('chat-messages');
     const q = query(collection(db, "chats", roomId, "messages"), orderBy("createdAt", "asc"));
 
     onSnapshot(q, (snapshot) => {
-      // Simpan elemen typing sebelum layar dibersihkan
       let typingWrapper = document.getElementById('typing-wrapper');
-      
       msgContainer.innerHTML = '';
       let lastDateString = "";
 
-      // Render pesan-pesan
+      // --- LOGIKA SUARA NOTIFIKASI ---
+      let hasNewIncomingMessage = false;
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added" && change.doc.data().senderId !== currentUser.uid) {
+           hasNewIncomingMessage = true;
+        }
+      });
+      // --------------------------------
+
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
         const isMe = data.senderId === currentUser.uid;
 
-        // Tandai sebagai terbaca JIKA pesan dari lawan
         if (!isMe && data.isRead === false) {
           updateDoc(docSnap.ref, { isRead: true }).catch(e => console.log(e));
           const summaryId = [currentUser.uid, targetUid].sort().join("_");
@@ -251,24 +204,18 @@ try {
 
         let timeStr = "Baru saja";
         let dateLabel = "";
-
         if (data.createdAt) {
           const date = data.createdAt.toDate();
           timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-          
           const today = new Date();
           const yesterday = new Date();
           yesterday.setDate(today.getDate() - 1);
-
-          if (date.toDateString() === today.toDateString()) {
-            dateLabel = "Hari ini";
-          } else if (date.toDateString() === yesterday.toDateString()) {
-            dateLabel = "Kemarin";
-          } else {
+          if (date.toDateString() === today.toDateString()) { dateLabel = "Hari ini"; }
+          else if (date.toDateString() === yesterday.toDateString()) { dateLabel = "Kemarin"; }
+          else {
             const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
             dateLabel = date.getDate() + " " + months[date.getMonth()] + " " + date.getFullYear();
           }
-
           if (dateLabel !== lastDateString) {
             const divider = document.createElement('div');
             divider.className = 'date-divider';
@@ -280,9 +227,7 @@ try {
 
         let checkHTML = '';
         if (isMe) {
-          checkHTML = data.isRead 
-            ? `<span class="check-icon check-read">✓✓</span>` 
-            : `<span class="check-icon check-unread">✓</span>`;
+          checkHTML = data.isRead ? `<span class="check-icon check-read">✓✓</span>` : `<span class="check-icon check-unread">✓</span>`;
         }
 
         const msgDiv = document.createElement('div');
@@ -291,44 +236,34 @@ try {
         msgContainer.appendChild(msgDiv);
       });
 
-      // Kembalikan elemen typing ke paling bawah SETELAH pesan dirender
-      if (typingWrapper) {
-        msgContainer.appendChild(typingWrapper);
-      }
+      // Mainkan suara jika ada pesan baru
+      if (hasNewIncomingMessage) playNotificationSound();
 
+      if (typingWrapper) msgContainer.appendChild(typingWrapper);
       msgContainer.scrollTop = msgContainer.scrollHeight;
     });
   }
 
-  // === FUNGSI TYPING INDICATOR ===
   function setupTyping() {
     const inputField = document.getElementById('chatInput');
     const typingWrapper = document.getElementById('typing-wrapper');
     const msgContainer = document.getElementById('chat-messages');
-
-    // Sembunyikan animasi terlebih dahulu
     typingWrapper.style.display = 'none';
 
-    // Dengarkan typing dari lawan
     const typingRef = doc(db, "chats", roomId, "typing", targetUid);
     onSnapshot(typingRef, (docSnap) => {
       if (docSnap.exists() && docSnap.data().isTyping === true) {
-        typingWrapper.style.display = 'flex'; // Tampilkan
-        // Scroll ke bawah hanya jika pengguna tidak sedang membaca pesan lama
+        typingWrapper.style.display = 'flex';
         const isScrolledToBottom = msgContainer.scrollHeight - msgContainer.scrollTop <= msgContainer.clientHeight + 100;
-        if (isScrolledToBottom) {
-          msgContainer.scrollTop = msgContainer.scrollHeight;
-        }
+        if (isScrolledToBottom) msgContainer.scrollTop = msgContainer.scrollHeight;
       } else {
-        typingWrapper.style.display = 'none'; // Sembunyikan
+        typingWrapper.style.display = 'none';
       }
     });
 
-    // Kirim typing saat kita mengetik
     inputField.addEventListener('input', () => {
       if (inputField.value.trim().length > 0) {
         setDoc(doc(db, "chats", roomId, "typing", currentUser.uid), { isTyping: true }).catch(()=>{});
-        
         clearTimeout(typingTimeout);
         typingTimeout = setTimeout(() => {
           setDoc(doc(db, "chats", roomId, "typing", currentUser.uid), { isTyping: false }).catch(()=>{});
@@ -339,7 +274,6 @@ try {
     });
   }
 
-  // === FUNGSI KIRIM PESAN (CEPAT) ===
   window.sendMsg = async () => {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
@@ -349,35 +283,20 @@ try {
     setDoc(doc(db, "chats", roomId, "typing", currentUser.uid), { isTyping: false }).catch(()=>{});
 
     try {
-      // Kirim pesan
       await addDoc(collection(db, "chats", roomId, "messages"), {
-        text: text,
-        senderId: currentUser.uid,
-        senderEmail: currentUser.email,
-        createdAt: serverTimestamp(),
-        isRead: false
+        text: text, senderId: currentUser.uid, senderEmail: currentUser.email, createdAt: serverTimestamp(), isRead: false
       });
-
-      // Kirim ringkasan (paralel, tidak perlu ditunggu)
       const summaryId = [currentUser.uid, targetUid].sort().join("_");
       setDoc(doc(db, "last_messages", summaryId), {
-        roomId: roomId,
-        senderId: currentUser.uid,
-        senderName: currentUser.email.split('@')[0],
-        text: text,
-        updatedAt: serverTimestamp(),
-        isRead: false 
+        roomId: roomId, senderId: currentUser.uid, senderName: currentUser.email.split('@')[0],
+        text: text, updatedAt: serverTimestamp(), isRead: false 
       }, { merge: true });
-
-    } catch (error) {
-      console.error("Gagal kirim:", error);
-    }
+    } catch (error) { console.error("Gagal kirim:", error); }
   };
 
   document.getElementById('chatInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') window.sendMsg();
   });
 </script>
-
 </body>
 </html>
