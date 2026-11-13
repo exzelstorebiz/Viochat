@@ -43,25 +43,42 @@
   .msg .time { font-size: 10px; opacity: 0.8; margin-top: 4px; text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
   .check-icon { font-size: 12px; font-weight: bold; color: var(--orange-400); }
 
-  /* === INDIKATOR TYPING GRUP === */
+  /* === INDIKATOR TYPING GRUP (MELAYANG) === */
   .typing-indicator-wrapper {
     position: absolute;
-    bottom: 75px; /* Melayang di atas input */
+    bottom: 75px; 
     left: 16px;
     z-index: 5;
     display: none;
     flex-direction: column;
-    gap: 4px;
+    align-items: flex-start;
   }
   
-  .typing-avatars { display: flex; align-items: center; gap: -8px; margin-left: 8px; }
-  .typing-avatars .t-avatar { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--violet-50); background: var(--violet-400); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; overflow: hidden; margin-right: -8px; position: relative; z-index: 1; }
+  .typing-avatars { 
+    display: flex; 
+    align-items: center; 
+    margin-left: 8px;
+    margin-bottom: 4px;
+  }
+  .typing-avatars .t-avatar { 
+    width: 28px; height: 28px; border-radius: 50%; 
+    border: 2px solid var(--violet-50); 
+    background: var(--violet-400); 
+    display: flex; align-items: center; justify-content: center; 
+    font-size: 11px; font-weight: bold; color: white; 
+    overflow: hidden; margin-left: -8px; position: relative; 
+  }
+  .typing-avatars .t-avatar:first-child { margin-left: 0; }
   .typing-avatars .t-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .typing-avatars .t-avatar:last-child { margin-right: 0; }
-  .typing-more { font-size: 10px; font-weight: bold; color: var(--violet-600); background: white; padding: 2px 6px; border-radius: 10px; margin-left: 12px; border: 1px solid var(--violet-200); z-index: 2; }
+  
+  .typing-more { 
+    font-size: 10px; font-weight: bold; color: var(--violet-700); 
+    background: white; padding: 2px 6px; border-radius: 10px; 
+    margin-left: 6px; border: 1px solid var(--violet-100); z-index: 2; 
+  }
 
   .typing-info { display: flex; flex-direction: column; align-items: flex-start; margin-left: 8px; }
-  .typing-name { font-size: 11px; font-weight: 600; color: var(--orange-600); margin-bottom: 2px; }
+  .typing-name { font-size: 11px; font-weight: 600; color: var(--orange-600); margin-bottom: 4px; }
   
   .typing-bubble {
     padding: 10px 14px;
@@ -100,11 +117,9 @@
   <div class="chat-messages bg-aurora" id="chat-messages">
     <div class="date-divider">Memuat pesan grup...</div>
 
-    <!-- INDIKATOR TYPING GRUP (Melayang di atas input) -->
+    <!-- INDIKATOR TYPING GRUP -->
     <div class="typing-indicator-wrapper" id="typing-indicator">
-      <!-- Area Avatar (Untuk 2+ orang) -->
-      <div class="typing-avatars" id="typing-avatars-container" style="display: none;"></div>
-      <!-- Area Nama & Bubble (Untuk 1 orang) -->
+      <div class="typing-avatars" id="typing-avatars-container"></div>
       <div class="typing-info" id="typing-info-container">
         <div class="typing-name" id="typing-name"></div>
         <div class="typing-bubble">
@@ -167,13 +182,18 @@
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
+      
+      // 1. Hitung Anggota
       try {
         const usersSnapshot = await getDocs(collection(db, "users"));
         document.getElementById('member-count').innerText = `${usersSnapshot.size} anggota`;
       } catch (e) { document.getElementById('member-count').innerText = `Anggota`; }
       
+      // 2. Muat Pesan & Fitur Typing
       loadGroupMessages();
       setupGroupTyping();
+      listenToGroupTyping();
+      
     } else {
       window.location.href = "vio-login.html";
     }
@@ -187,17 +207,21 @@
     const q = query(collection(db, "groups", GROUP_ID, "messages"), orderBy("createdAt", "asc"));
 
     onSnapshot(q, (snapshot) => {
-      // Simpan elemen typing wrapper sebelum layar dibersihkan
+      // Simpan referensi elemen typing SEBELUM kontainer dibersihkan
       let typingIndicator = document.getElementById('typing-indicator');
       
       msgContainer.innerHTML = '';
-      if (typingIndicator) msgContainer.appendChild(typingIndicator); // Kembalikan typing wrapper
+      
+      // Kembalikan elemen typing ke dalam kontainer
+      if (typingIndicator) msgContainer.appendChild(typingIndicator);
 
       let lastDateString = "";
       let hasNewGroupMessage = false;
 
       snapshot.docChanges().forEach((change) => {
-        if (change.type === "added" && change.doc.data().senderId !== currentUser.uid) hasNewGroupMessage = true;
+        if (change.type === "added" && change.doc.data().senderId !== currentUser.uid) {
+          hasNewGroupMessage = true;
+        }
       });
 
       snapshot.forEach((docSnap) => {
@@ -218,7 +242,7 @@
           if (dateLabel !== lastDateString) {
             const divider = document.createElement('div');
             divider.className = 'date-divider'; divider.innerText = dateLabel;
-            // Masukkan divider sebelum typing indicator
+            // Sisipkan divider sebelum typing indicator agar urutannya rapi
             if (typingIndicator) msgContainer.insertBefore(divider, typingIndicator);
             else msgContainer.appendChild(divider);
             lastDateString = dateLabel;
@@ -241,7 +265,8 @@
             </div>
           </div>
         `;
-        // Masukkan pesan sebelum typing indicator
+        
+        // Sisipkan pesan sebelum typing indicator
         if (typingIndicator) msgContainer.insertBefore(msgGroupDiv, typingIndicator);
         else msgContainer.appendChild(msgGroupDiv);
       });
@@ -251,14 +276,13 @@
     });
   }
 
-  // === LOGIKA TYPING GRUP (MENGIRIM) ===
+  // === 1. MENGIRIM SINYAL TYPING ===
   function setupGroupTyping() {
     const inputField = document.getElementById('chatInput');
     const typingRef = doc(db, "groups", GROUP_ID, "typing", currentUser.uid);
 
     inputField.addEventListener('input', async () => {
       if (inputField.value.trim().length > 0) {
-        // Ambil data user untuk dikirim ke indikator
         const userDoc = await getDoc(doc(db, "users", currentUser.uid));
         const userData = userDoc.exists() ? userDoc.data() : {};
         
@@ -270,7 +294,7 @@
 
         clearTimeout(typingTimeout);
         typingTimeout = setTimeout(() => {
-          deleteDoc(typingRef).catch(()=>{}); // Hapus dokumen saat berhenti mengetik
+          deleteDoc(typingRef).catch(()=>{}); 
         }, 1500);
       } else {
         deleteDoc(typingRef).catch(()=>{});
@@ -278,21 +302,19 @@
     });
   }
 
-  // === LOGIKA TYPING GRUP (MENERIMA & MERENDER) ===
+  // === 2. MENERIMA & MERENDER SINYAL TYPING ===
   function listenToGroupTyping() {
     const typingContainer = document.getElementById('typing-indicator');
     const avatarsContainer = document.getElementById('typing-avatars-container');
     const infoContainer = document.getElementById('typing-info-container');
     const nameEl = document.getElementById('typing-name');
     
-    // Dengarkan semua dokumen di sub-koleksi typing
     const q = query(collection(db, "groups", GROUP_ID, "typing"));
     
     onSnapshot(q, (snapshot) => {
       let typers = [];
       snapshot.forEach((doc) => {
-        // Jangan tampilkan diri kita sendiri
-        if (doc.id !== currentUser.uid) {
+        if (doc.id !== currentUser.uid) { // Jangan tampilkan diri sendiri
           typers.push(doc.data());
         }
       });
@@ -305,12 +327,12 @@
       typingContainer.style.display = 'flex';
 
       if (typers.length === 1) {
-        // KONDISI 1: Satu Orang
+        // KONDISI 1: Satu Orang (Nama + Bubble)
         infoContainer.style.display = 'flex';
         avatarsContainer.style.display = 'none';
         nameEl.innerText = typers[0].name;
       } else {
-        // KONDISI 2+: Banyak Orang
+        // KONDISI 2+: Banyak Orang (Avatar Berjejer + Bubble)
         infoContainer.style.display = 'none';
         avatarsContainer.style.display = 'flex';
         avatarsContainer.innerHTML = '';
@@ -330,12 +352,8 @@
       }
     });
   }
-  
-  // Panggil listener typing setelah halaman dimuat
-  // (Kita panggil di dalam onAuthStateChanged setelah currentUser ada)
-  // Tapi karena listenToGroupTyping butuh currentUser, kita panggil di dalam onAuthStateChanged
-  // (Sudah ditambahkan di atas)
 
+  // === 3. KIRIM PESAN ===
   window.sendMsg = async () => {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
