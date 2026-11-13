@@ -19,27 +19,17 @@
   body { font-family: 'Inter', sans-serif; background: var(--violet-50); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
   .phone { width: 100%; max-width: 420px; height: 90vh; max-height: 800px; background: var(--white); border-radius: 32px; overflow: hidden; box-shadow: 0 25px 60px -12px rgba(91, 33, 182, 0.35); display: flex; flex-direction: column; position: relative; }
 
-  /* === CSS SPLASH SCREEN (OVERLAY) === */
   #splash-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background-color: #F8F6FF;
-    background-image: 
-      radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 40%),
-      radial-gradient(circle at 85% 80%, rgba(249, 115, 22, 0.08) 0%, transparent 40%);
+    background-image: radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 40%), radial-gradient(circle at 85% 80%, rgba(249, 115, 22, 0.08) 0%, transparent 40%);
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     z-index: 9999; transition: opacity 0.5s ease;
   }
   #splash-overlay.fade-out { opacity: 0; pointer-events: none; }
-  .splash-logo-container {
-    width: 120px; height: 120px; display: flex; justify-content: center; align-items: center;
-    opacity: 0; transform: scale(0.5); animation: splashPopIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  }
+  .splash-logo-container { width: 120px; height: 120px; display: flex; justify-content: center; align-items: center; opacity: 0; transform: scale(0.5); animation: splashPopIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
   .splash-logo-container img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 20px rgba(124, 58, 237, 0.3)); border-radius: 20px; }
-  .splash-logo-container::before {
-    content: ''; position: absolute; width: 160px; height: 160px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 60%); animation: splashGlow 2s infinite alternate;
-  }
+  .splash-logo-container::before { content: ''; position: absolute; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 60%); animation: splashGlow 2s infinite alternate; }
   .splash-app-name { color: var(--violet-600); font-size: 28px; font-weight: 800; margin-top: 20px; opacity: 0; animation: splashFadeInUp 0.8s ease forwards; animation-delay: 0.5s; }
   .splash-subtitle { color: #6B7280; font-size: 14.5px; letter-spacing: 1px; margin-top: 5px; opacity: 0; animation: splashFadeInUp 0.8s ease forwards; animation-delay: 0.8s; }
   .splash-loader { margin-top: 30px; width: 60px; height: 3px; background: rgba(124, 58, 237, 0.1); border-radius: 3px; overflow: hidden; position: relative; opacity: 0; animation: splashFadeInUp 0.8s ease forwards; animation-delay: 1s; }
@@ -98,24 +88,6 @@
 
   .fab { position: absolute; bottom: 24px; right: 24px; width: 58px; height: 58px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-500), var(--orange-700)); border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4); z-index: 10; transition: transform 0.2s; }
   .fab:hover { transform: scale(1.08) rotate(90deg); }
-
-/* === EFEK TRANSISI HALAMAN (FADE & SLIDE UP) === */
-@keyframes pageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Terapkan animasi ke kontainer utama (kotak HP) */
-.phone, .card, .splash-container {
-  animation: pageEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-  
 </style>
 </head>
 <body>
@@ -145,7 +117,7 @@
   <div class="tabs">
     <div class="tab active" id="tab-semua" onclick="switchTab('semua')">Semua <span class="badge" id="total-kontak">0</span></div>
     <div class="tab" id="tab-unread" onclick="switchTab('unread')">Belum Dibaca <span class="badge" id="total-unread" style="display:none; background:var(--violet-600);">0</span></div>
-    <div class="tab" id="tab-grup" onclick="window.location.href='group-chat.html'">Grup <span class="badge" id="total-unread-group" style="display:none; background:var(--red);">0</span></div>
+    <div class="tab" id="tab-grup" onclick="window.location.href='group-chat.html'">Grup <span class="badge" id="total-unread-group" style="display:none; background:var(--violet-600);">0</span></div>
   </div>
 
   <div class="chat-list" id="chat-list-container">
@@ -157,6 +129,35 @@
 </div>
 
 <script type="module">
+  // === FUNGSI NADA NOTIFIKASI (CHIME) ===
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AudioContext();
+
+  function playNotificationSound() {
+    if (document.hidden) return; 
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    function playNote(frequency, startTime, duration, type = 'triangle') {
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.type = type;
+      oscillator.frequency.value = frequency;
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    }
+
+    const now = audioCtx.currentTime;
+    playNote(1318.5, now, 0.4);       
+    playNote(1046.5, now + 0.15, 0.4); 
+    playNote(880, now + 0.3, 0.6);     
+  }
+  // =====================================
+
   const splashOverlay = document.getElementById('splash-overlay');
   if (!sessionStorage.getItem('splashShown')) {
     splashOverlay.style.display = 'flex';
@@ -172,13 +173,12 @@
   import { getFirestore, collection, getDocs, doc, getDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
-  apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
-  authDomain: "viochat-2528a.firebaseapp.com",
-  projectId: "viochat-2528a",
-  storageBucket: "viochat-2528a.firebasestorage.app",
-  messagingSenderId: "296507148175",
-  appId: "1:296507148175:web:933c3fd682999649726dfa",
-  measurementId: "G-3B8DYF9Z96"
+    apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
+    authDomain: "viochat-2528a.firebaseapp.com",
+    projectId: "viochat-2528a",
+    storageBucket: "viochat-2528a.firebasestorage.app",
+    messagingSenderId: "296507148175",
+    appId: "1:296507148175:web:933c3fd682999649726dfa"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -269,10 +269,18 @@
 
       onSnapshot(collection(db, "last_messages"), (snapshot) => {
         let needUpdate = false;
+        let hasNewMessage = false; // Penanda suara
+
         snapshot.docChanges().forEach((change) => {
           const summaryData = change.doc.data();
           const roomIdChanged = change.doc.id;
           const index = chatDataStore.findIndex(c => [currentUser.uid, c.contact.id].sort().join("_") === roomIdChanged);
+          
+          // Jika ini pesan baru dari orang lain
+          if ((change.type === "added" || change.type === "modified") && summaryData.senderId !== currentUser.uid) {
+            hasNewMessage = true;
+          }
+
           if (index !== -1) {
             if (summaryData.updatedAt) {
               const date = summaryData.updatedAt.toDate();
@@ -289,7 +297,9 @@
             needUpdate = true;
           }
         });
+        
         if (needUpdate) renderChatListUI();
+        if (hasNewMessage) playNotificationSound(); // Panggil suara
       });
 
     } catch (error) { container.innerHTML = `<div style="text-align: center; padding: 20px; color: red;">Gagal memuat: ${error.message}</div>`; }
@@ -341,12 +351,10 @@
     });
   }
 
-  // === FUNGSI MEMANTAU PESAN GRUP YANG BELUM DIBACA (REAL-TIME) ===
   async function listenToGroupUnread() {
     const GROUP_ID = "keluarga_mbah_papi";
     const groupBadge = document.getElementById('total-unread-group');
 
-    // Dengarkan perubahan pesan grup secara terus-menerus selama di halaman index
     const q = query(collection(db, "groups", GROUP_ID, "messages"), orderBy("createdAt", "desc"));
     
     onSnapshot(q, async (snapshot) => {
@@ -358,10 +366,8 @@
       
       snapshot.forEach((docSnap) => {
         const msgData = docSnap.data();
-        // Hanya hitung pesan orang lain yang waktunya lebih baru dari lastReadTime
         if (msgData.senderId !== currentUser.uid && msgData.createdAt) {
           const msgTime = msgData.createdAt.toMillis();
-          // Beri toleransi 2 detik (2000 ms) untuk mencegah bentrok waktu server
           if (msgTime > lastReadTime + 2000) {
             unreadCount++;
           }
