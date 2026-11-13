@@ -168,7 +168,7 @@
   <div class="tabs">
     <div class="tab active" id="tab-semua" onclick="switchTab('semua')">Semua <span class="badge" id="total-kontak">0</span></div>
     <div class="tab" id="tab-unread" onclick="switchTab('unread')">Belum Dibaca <span class="badge" id="total-unread" style="display:none; background:var(--violet-600);">0</span></div>
-    <div class="tab" id="tab-grup" onclick="window.location.href='group-chat.html'">Grup</div>
+    <div class="tab" id="tab-grup" onclick="window.location.href='group-chat.html'">Grup <span class="badge" id="total-unread-group" style="display:none; background:var(--violet-600);">0</span></div>
   </div>
 
   <div class="chat-list" id="chat-list-container">
@@ -251,6 +251,7 @@
       } catch (e) { console.log(e); }
 
       await initChatList();
+listenToGroupUnread(); // <--- TAMBAHKAN BARIS INI
     } else {
       setTimeout(() => { if (!auth.currentUser) window.location.href = "vio-login.html"; }, 1500);
     }
@@ -445,6 +446,42 @@
       container.appendChild(div);
     });
   }
+  // === FUNGSI MEMANTAU PESAN GRUP YANG BELUM DIBACA ===
+async function listenToGroupUnread() {
+  const GROUP_ID = "keluarga_mbah_papi";
+  const groupBadge = document.getElementById('total-unread-group');
+
+  // Dengarkan perubahan pesan di grup secara real-time
+  const q = query(collection(db, "groups", GROUP_ID, "messages"), orderBy("createdAt", "desc"));
+  
+  onSnapshot(q, async (snapshot) => {
+    // 1. Ambil waktu terakhir kali user membuka grup
+    const readRef = doc(db, "groups", GROUP_ID, "read_status", currentUser.uid);
+    const readSnap = await getDoc(readRef);
+    let lastReadTime = readSnap.exists() ? readSnap.data().lastReadAt.toMillis() : 0;
+
+    let unreadCount = 0;
+    
+    // 2. Hitung berapa pesan yang masuk setelah lastReadTime
+    snapshot.forEach((docSnap) => {
+      const msgData = docSnap.data();
+      if (msgData.senderId !== currentUser.uid && msgData.createdAt) {
+        const msgTime = msgData.createdAt.toMillis();
+        if (msgTime > lastReadTime) {
+          unreadCount++;
+        }
+      }
+    });
+
+    // 3. Tampilkan badge jika ada pesan belum dibaca
+    if (unreadCount > 0) {
+      groupBadge.style.display = 'inline-block';
+      groupBadge.innerText = unreadCount;
+    } else {
+      groupBadge.style.display = 'none';
+    }
+  });
+}
 </script>
 
 </body>
