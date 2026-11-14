@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VioChat - Grup Keluarga (Debug Mode)</title>
+<title>VioChat - Grup Keluarga</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* ... (CSS sama persis seperti sebelumnya, tidak ada yang diubah) ... */
   :root {
     --violet-900: #4C1D95; --violet-800: #5B21B6; --violet-700: #6D28D9;
     --violet-600: #7C3AED; --violet-500: #8B5CF6; --violet-400: #A78BFA;
@@ -67,7 +66,7 @@
   .input-wrapper input { flex: 1; border: none; background: transparent; outline: none; font-size: 14.5px; padding: 10px 0; color: var(--text); font-family: inherit; }
   .send-btn { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-500), var(--orange-700)); border: none; color: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(249, 115, 22, 0.4); }
 
-  /* ALAT DEBUG: Kotak kecil di pojok kiri bawah */
+  /* ALAT DEBUG */
   #debug-box {
     position: fixed; bottom: 0; left: 0; background: black; color: #00FF00; font-size: 10px; padding: 5px; z-index: 99999; font-family: monospace; pointer-events: none; opacity: 0.8;
   }
@@ -75,7 +74,6 @@
 </head>
 <body>
 
-<!-- ALAT DEBUG -->
 <div id="debug-box">Memuat...</div>
 
 <div class="phone">
@@ -109,7 +107,7 @@
 </div>
 
 <script type="module">
-  // --- ALAT DEBUG ---
+  // ALAT DEBUG
   const debugBox = document.getElementById('debug-box');
   function logDebug(msg) {
     console.log(msg);
@@ -117,19 +115,42 @@
   }
   // -----------------
 
-  // (Fungsi Audio & Firebase sama seperti sebelumnya)
+  // FUNGSI AUDIO
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   const audioCtx = new AudioContext();
-  function playNotificationSound() { /* ... */ }
+  function playNotificationSound() {
+    if (document.hidden) return; 
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    function playNote(frequency, startTime, duration, type = 'triangle') {
+      const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+      oscillator.type = type; oscillator.frequency.value = frequency;
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
+      oscillator.start(startTime); oscillator.stop(startTime + duration);
+    }
+    const now = audioCtx.currentTime;
+    playNote(1318.5, now, 0.4); playNote(1046.5, now + 0.15, 0.4); playNote(880, now + 0.3, 0.6);     
+  }
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, getDocs, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const firebaseConfig = { /* ... */ };
+  const firebaseConfig = {
+    apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
+    authDomain: "viochat-2528a.firebaseapp.com",
+    projectId: "viochat-2528a",
+    storageBucket: "viochat-2528a.firebasestorage.app",
+    messagingSenderId: "296507148175",
+    appId: "1:296507148175:web:933c3fd682999649726dfa"
+  };
+
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+
   const GROUP_ID = "keluarga_mbah_papi";
   let currentUser = null;
   let typingTimeout = null;
@@ -146,7 +167,7 @@
       
       loadGroupMessages();
       setupGroupTyping();
-      listenToGroupTyping(); // <--- FUNGSI KUNCI
+      listenToGroupTyping();
       
     } else {
       window.location.href = "vio-login.html";
@@ -154,10 +175,70 @@
   });
 
   function loadGroupMessages() {
-    // ... (Sama seperti sebelumnya, tidak ada error) ...
+    const msgContainer = document.getElementById('chat-messages');
+    const readRef = doc(db, "groups", GROUP_ID, "read_status", currentUser.uid);
+    setDoc(readRef, { lastReadAt: serverTimestamp() }, { merge: true }).catch(e => console.log(e));
+
+    const q = query(collection(db, "groups", GROUP_ID, "messages"), orderBy("createdAt", "asc"));
+
+    onSnapshot(q, (snapshot) => {
+      msgContainer.innerHTML = '';
+      let lastDateString = "";
+      let hasNewGroupMessage = false;
+
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added" && change.doc.data().senderId !== currentUser.uid) {
+          hasNewGroupMessage = true;
+        }
+      });
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const isMe = data.senderId === currentUser.uid;
+
+        let timeStr = "Baru saja", dateLabel = "";
+        if (data.createdAt) {
+          const date = data.createdAt.toDate();
+          timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+          const today = new Date(); const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+          if (date.toDateString() === today.toDateString()) dateLabel = "Hari ini";
+          else if (date.toDateString() === yesterday.toDateString()) dateLabel = "Kemarin";
+          else {
+            const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+            dateLabel = date.getDate() + " " + months[date.getMonth()] + " " + date.getFullYear();
+          }
+          if (dateLabel !== lastDateString) {
+            const divider = document.createElement('div');
+            divider.className = 'date-divider'; divider.innerText = dateLabel;
+            msgContainer.appendChild(divider);
+            lastDateString = dateLabel;
+          }
+        }
+
+        const senderName = data.senderName || 'User';
+        const senderInitial = senderName.charAt(0).toUpperCase();
+        const senderPhoto = data.senderPhoto ? `<img src="${data.senderPhoto}">` : senderInitial;
+
+        const msgGroupDiv = document.createElement('div');
+        msgGroupDiv.className = `msg-group ${isMe ? 'sent' : 'received'}`;
+        msgGroupDiv.innerHTML = `
+          <div class="msg-avatar">${senderPhoto}</div>
+          <div class="msg-content">
+            ${!isMe ? `<div class="msg-sender">${senderName}</div>` : ''}
+            <div class="msg ${isMe ? 'sent' : 'received'}">
+              <div>${data.text}</div>
+              <div class="time">${timeStr} ${isMe ? '<span class="check-icon">✓✓</span>' : ''}</div>
+            </div>
+          </div>
+        `;
+        msgContainer.appendChild(msgGroupDiv);
+      });
+
+      if (hasNewGroupMessage) playNotificationSound();
+      msgContainer.scrollTop = msgContainer.scrollHeight;
+    });
   }
 
-  // === 1. MENGIRIM SINYAL TYPING ===
   function setupGroupTyping() {
     const inputField = document.getElementById('chatInput');
     const typingRef = doc(db, "groups", GROUP_ID, "typing", currentUser.uid);
@@ -191,7 +272,6 @@
     });
   }
 
-  // === 2. MENERIMA & MERENDER SINYAL TYPING ===
   function listenToGroupTyping() {
     const typingContainer = document.getElementById('typing-indicator');
     const avatarsContainer = document.getElementById('typing-avatars-container');
@@ -210,7 +290,7 @@
         }
       });
 
-      logDebug(`Mendengar perubahan: ${typers.length} orang mengetik`);
+      logDebug(`Mendengar: ${typers.length} orang mengetik`);
 
       if (typers.length === 0) {
         typingContainer.style.display = 'none';
@@ -241,7 +321,32 @@
     });
   }
 
-  // ... (Fungsi sendMsg sama) ...
+  window.sendMsg = async () => {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text || !currentUser) return;
+
+    input.value = '';
+    deleteDoc(doc(db, "groups", GROUP_ID, "typing", currentUser.uid)).catch(()=>{});
+
+    try {
+      const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+      const userData = userDoc.exists() ? userDoc.data() : {};
+      const senderName = userData.displayName || currentUser.email.split('@')[0];
+      const senderPhoto = userData.photoURL || "";
+
+      await addDoc(collection(db, "groups", GROUP_ID, "messages"), {
+        text: text, senderId: currentUser.uid, senderName: senderName, senderPhoto: senderPhoto, createdAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Gagal kirim:", error);
+      alert("Gagal mengirim pesan grup.");
+    }
+  };
+
+  document.getElementById('chatInput').addEventListener('keypress', e => {
+    if (e.key === 'Enter') window.sendMsg();
+  });
 </script>
 </body>
 </html>
