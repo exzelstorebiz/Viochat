@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VioChat - Panggilan Aktif</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --violet-600: #7C3AED;
+    --violet-500: #8B5CF6;
+    --violet-100: #EDE9FE;
+    --green: #10B981;
+    --red: #EF4444;
+    --white: #FFFFFF;
+    --bg-light: #F8F6FF;
+    --text-dark: #1F2937;
+    --text-muted: #6B7280;
+    --border-light: #E5E7EB;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    /* Latar belakang Aurora Lembut */
+    background-color: #F8F6FF;
+    background-image: 
+      radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.12) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(249, 115, 22, 0.08) 0%, transparent 40%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+    color: var(--text-dark);
+  }
+
+  .call-screen {
+    width: 100%;
+    max-width: 400px;
+    height: 85vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 40px 20px;
+  }
+
+  /* Bagian Atas: Status & Timer */
+  .call-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+  }
+
+  .call-type {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+
+  .timer {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--violet-600);
+    letter-spacing: -1px;
+    margin-bottom: 5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .status-text {
+    font-size: 14px;
+    color: var(--green);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .status-dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulseDot 2s infinite;
+  }
+
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+  }
+
+  /* Bagian Tengah: Avatar & Nama */
+  .caller-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: -40px;
+  }
+
+  .avatar-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    width: 140px;
+    height: 140px;
+  }
+
+  .avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--violet-500), var(--violet-600));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 56px;
+    font-weight: 700;
+    color: white;
+    z-index: 10;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(124, 58, 237, 0.25);
+  }
+  
+  .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+  /* Efek denyut pelan saat panggilan aktif */
+  .pulse-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid var(--violet-100);
+    animation: slowRipple 3s infinite ease-out;
+  }
+  .pulse-ring:nth-child(2) { animation-delay: 1.5s; }
+
+  @keyframes slowRipple {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  .caller-name {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-dark);
+    letter-spacing: -0.5px;
+  }
+
+  /* Bagian Bawah: Tombol Kontrol */
+  .call-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 30px;
+    margin-bottom: 20px;
+  }
+
+  .secondary-actions {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    width: 100%;
+  }
+
+  .action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .btn-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 26px;
+    color: var(--text-muted);
+    background: var(--white);
+    border: 2px solid var(--border-light);
+    transition: all 0.2s ease;
+  }
+
+  .action-btn:active .btn-icon { transform: scale(0.9); }
+
+  .btn-icon.active {
+    background: var(--violet-600);
+    color: var(--white);
+    border-color: var(--violet-600);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  }
+
+  .btn-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  
+  .btn-end .btn-icon {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, #EF4444, #B91C1C);
+    color: white;
+    border: none;
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+    font-size: 30px;
+    transform: rotate(135deg);
+  }
+  
+  .btn-end .btn-icon span { transform: rotate(-135deg); }
+  .btn-end:active .btn-icon { transform: rotate(135deg) scale(0.9); }
+  .btn-end .btn-label { color: var(--text-dark); }
+</style>
+</head>
+<body>
+
+<div class="call-screen">
+  <div class="call-header">
+    <div class="call-type">VioChat Audio Call</div>
+    <div class="timer" id="timer">00:00</div>
+    <div class="status-text"><span class="status-dot"></span> Terhubung</div>
+  </div>
+
+  <div class="caller-info">
+    <div class="avatar-container">
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="avatar" id="other-avatar">?</div>
+    </div>
+    <div class="caller-name" id="other-name">Memuat...</div>
+  </div>
+
+  <div class="call-actions">
+    <div class="secondary-actions">
+      <div class="action-btn" onclick="toggleButton(this)">
+        <div class="btn-icon">🎤</div>
+        <div class="btn-label">Mute</div>
+      </div>
+      <div class="action-btn" onclick="toggleButton(this)">
+        <div class="btn-icon">🔊</div>
+        <div class="btn-label">Speaker</div>
+      </div>
+    </div>
+    <div class="action-btn btn-end" onclick="endCall()">
+      <div class="btn-icon"><span>📞</span></div>
+      <div class="btn-label">Akhiri Panggilan</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
+    authDomain: "viochat-2528a.firebaseapp.com",
+    projectId: "viochat-2528a",
+    storageBucket: "viochat-2528a.firebasestorage.app",
+    messagingSenderId: "296507148175",
+    appId: "1:296507148175:web:933c3fd682999649726dfa"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const callId = urlParams.get('callId');
+  const role = urlParams.get('role'); // 'caller' atau 'receiver'
+  let currentUser = null;
+  let callUnsubscribe = null;
+  let timerInterval = null;
+  let seconds = 0;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      
+      // Mulai Timer
+      timerInterval = setInterval(() => {
+        seconds++;
+        const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const secs = (seconds % 60).toString().padStart(2, '0');
+        document.getElementById('timer').innerText = `${mins}:${secs}`;
+      }, 1000);
+
+      // Tampilkan info lawan bicara
+      try {
+        const callDoc = await getDoc(doc(db, "calls", callId));
+        if (callDoc.exists()) {
+          const callData = callDoc.data();
+          // Jika kita penelepon, tampilkan data receiver. Jika penerima, tampilkan data caller.
+          const otherId = (callData.callerId === currentUser.uid) ? callData.receiverId : callData.callerId;
+          
+          const otherDoc = await getDoc(doc(db, "users", otherId));
+          if (otherDoc.exists()) {
+            const otherData = otherDoc.data();
+            const name = otherData.displayName || "Kontak";
+            document.getElementById('other-name').innerText = name;
+            document.getElementById('other-avatar').innerText = name.charAt(0).toUpperCase();
+            if (otherData.photoURL) {
+              document.getElementById('other-avatar').style.background = "transparent";
+              document.getElementById('other-avatar').innerHTML = `<img src="${otherData.photoURL}">`;
+            }
+          }
+        }
+      } catch (e) { console.log(e); }
+
+      // Dengarkan jika panggilan diakhiri oleh pihak lain
+      callUnsubscribe = onSnapshot(doc(db, "calls", callId), (docSnap) => {
+        if (docSnap.exists() && docSnap.data().status === "ended") {
+          cleanupAndExit();
+        }
+      });
+
+    } else {
+      window.location.href = "vio-login.html";
+    }
+  });
+
+  window.toggleButton = (btn) => {
+    const icon = btn.querySelector('.btn-icon');
+    icon.classList.toggle('active');
+  };
+
+  window.endCall = async () => {
+    try {
+      await updateDoc(doc(db, "calls", callId), { status: "ended" });
+    } catch (e) { console.log(e); }
+    cleanupAndExit();
+  };
+
+  function cleanupAndExit() {
+    if (timerInterval) clearInterval(timerInterval);
+    if (callUnsubscribe) callUnsubscribe();
+    // Kembali ke halaman chat atau index
+    window.location.href = "index.html";
+  }
+</script>
+</body>
+</html>
