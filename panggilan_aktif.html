@@ -6,8 +6,11 @@
 <title>VioChat - Panggilan Aktif</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* ... (CSS SAMA SEPERTI SEBELUMNYA) ... */
-  :root { --violet-600: #7C3AED; --violet-500: #8B5CF6; --violet-100: #EDE9FE; --green: #10B981; --red: #EF4444; --white: #FFFFFF; --bg-light: #F8F6FF; --text-dark: #1F2937; --text-muted: #6B7280; --border-light: #E5E7EB; }
+  :root {
+    --violet-600: #7C3AED; --violet-500: #8B5CF6; --violet-100: #EDE9FE;
+    --green: #10B981; --red: #EF4444; --white: #FFFFFF;
+    --bg-light: #F8F6FF; --text-dark: #1F2937; --text-muted: #6B7280; --border-light: #E5E7EB;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Inter', sans-serif; background-color: #F8F6FF; background-image: radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.12) 0%, transparent 40%), radial-gradient(circle at 85% 80%, rgba(249, 115, 22, 0.08) 0%, transparent 40%); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; color: var(--text-dark); }
   .call-screen { width: 100%; max-width: 400px; height: 85vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 40px 20px; }
@@ -70,20 +73,27 @@
   </div>
 </div>
 
-<!-- AUDIO ELEMEN UNTUK MENERIMA SUARA -->
 <audio id="remote-audio" autoplay></audio>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc, updateDoc, onSnapshot, collection, addDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, updateDoc, onSnapshot, collection, addDoc, query } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const firebaseConfig = { /* CONFIG ANDA */ apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE", authDomain: "viochat-2528a.firebaseapp.com", projectId: "viochat-2528a", storageBucket: "viochat-2528a.firebasestorage.app", messagingSenderId: "296507148175", appId: "1:296507148175:web:933c3fd682999649726dfa" };
+  const firebaseConfig = {
+    apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
+    authDomain: "viochat-2528a.firebaseapp.com",
+    projectId: "viochat-2528a",
+    storageBucket: "viochat-2528a.firebasestorage.app",
+    messagingSenderId: "296507148175",
+    appId: "1:296507148175:web:933c3fd682999649726dfa"
+  };
+
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // KONFIGURASI WEBRTC
+  // Konfigurasi STUN Server Google (Gratis)
   const servers = {
     iceServers: [
       { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
@@ -96,7 +106,7 @@
 
   const urlParams = new URLSearchParams(window.location.search);
   const callId = urlParams.get('callId');
-  const role = urlParams.get('role'); // 'caller' atau 'receiver'
+  const role = urlParams.get('role'); 
   let currentUser = null;
   let timerInterval = null;
   let seconds = 0;
@@ -107,7 +117,7 @@
     if (user) {
       currentUser = user;
       
-      // Mulai Timer
+      // Timer
       timerInterval = setInterval(() => {
         seconds++;
         const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -115,7 +125,7 @@
         document.getElementById('timer').innerText = `${mins}:${secs}`;
       }, 1000);
 
-      // Tampilkan info lawan bicara
+      // Tampilkan Info Lawan
       try {
         const callDoc = await getDoc(doc(db, "calls", callId));
         if (callDoc.exists()) {
@@ -135,14 +145,12 @@
         }
       } catch (e) { console.log(e); }
 
-      // Mulai WebRTC
+      // Mulai WebRTC dengan Jeda
       await startWebRTC();
 
-      // Dengarkan jika panggilan diakhiri oleh pihak lain
+      // Dengarkan jika panggilan diakhiri
       callUnsubscribe = onSnapshot(doc(db, "calls", callId), (docSnap) => {
-        if (docSnap.exists() && docSnap.data().status === "ended") {
-          cleanupAndExit();
-        }
+        if (docSnap.exists() && docSnap.data().status === "ended") cleanupAndExit();
       });
 
     } else {
@@ -152,15 +160,16 @@
 
   async function startWebRTC() {
     try {
+      // === JURUS JEDA 1 DETIK ===
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // 1. Minta izin mikrofon
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       
-      // 2. Tambahkan track audio ke koneksi
       localStream.getTracks().forEach(track => {
         pc.addTrack(track, localStream);
       });
 
-      // 3. Tangani saat menerima track dari lawan (suara masuk)
       pc.ontrack = (event) => {
         if (!remoteStream) {
           remoteStream = new MediaStream();
@@ -169,7 +178,6 @@
         remoteStream.addTrack(event.track);
       };
 
-      // 4. Kirim ICE Candidate ke Firestore
       pc.onicecandidate = (event) => {
         if (event.candidate) {
           addDoc(collection(db, "calls", callId, "signals"), {
@@ -180,36 +188,45 @@
         }
       };
 
-      // 5. Logika Offer/Answer berdasarkan Role
       if (role === 'caller') {
-        // CALLER: Buat Offer
         const offerDescription = await pc.createOffer();
         await pc.setLocalDescription(offerDescription);
         
-        // Simpan Offer ke Firestore
         await addDoc(collection(db, "calls", callId, "signals"), {
           type: "offer",
           sender: "caller",
           sdp: offerDescription.sdp,
           sdpType: offerDescription.type
         });
-      } else {
-        // RECEIVER: Tunggu Offer dari Caller
+
+        // Tunggu jawaban
         const signalsQuery = query(collection(db, "calls", callId, "signals"));
         signalUnsubscribe = onSnapshot(signalsQuery, async (snapshot) => {
           for (const change of snapshot.docChanges()) {
             if (change.type === "added") {
               const data = change.doc.data();
-              
+              if (data.type === "answer" && data.sender === "receiver") {
+                if (pc.signalingState !== 'stable') {
+                   await pc.setRemoteDescription(new RTCSessionDescription({ type: data.sdpType, sdp: data.sdp }));
+                }
+              }
+              if (data.type === "ice" && data.sender === "receiver") {
+                try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) { console.log(e); }
+              }
+            }
+          }
+        });
+      } else {
+        // Receiver: Tunggu offer
+        const signalsQuery = query(collection(db, "calls", callId, "signals"));
+        signalUnsubscribe = onSnapshot(signalsQuery, async (snapshot) => {
+          for (const change of snapshot.docChanges()) {
+            if (change.type === "added") {
+              const data = change.doc.data();
               if (data.type === "offer" && data.sender === "caller") {
-                // Set Remote Description dari Offer
                 await pc.setRemoteDescription(new RTCSessionDescription({ type: data.sdpType, sdp: data.sdp }));
-                
-                // Buat Answer
                 const answerDescription = await pc.createAnswer();
                 await pc.setLocalDescription(answerDescription);
-                
-                // Simpan Answer ke Firestore
                 await addDoc(collection(db, "calls", callId, "signals"), {
                   type: "answer",
                   sender: "receiver",
@@ -217,47 +234,8 @@
                   sdpType: answerDescription.type
                 });
               }
-            }
-          }
-        });
-      }
-
-      // 6. Logika Caller: Tunggu Answer dan ICE dari Receiver
-      if (role === 'caller') {
-        const signalsQuery = query(collection(db, "calls", callId, "signals"));
-        signalUnsubscribe = onSnapshot(signalsQuery, async (snapshot) => {
-          for (const change of snapshot.docChanges()) {
-            if (change.type === "added") {
-              const data = change.doc.data();
-              
-              if (data.type === "answer" && data.sender === "receiver") {
-                if (pc.signalingState !== 'stable') {
-                   await pc.setRemoteDescription(new RTCSessionDescription({ type: data.sdpType, sdp: data.sdp }));
-                }
-              }
-              
-              if (data.type === "ice" && data.sender === "receiver") {
-                try {
-                  await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-                } catch (e) { console.log("Gagal tambah ICE (Caller):", e); }
-              }
-            }
-          }
-        });
-      }
-
-      // 7. Logika Receiver: Tambah ICE dari Caller
-      if (role === 'receiver') {
-        // Kita gunakan listener yang sama dengan di atas, tapi filter untuk ice
-        const iceQuery = query(collection(db, "calls", callId, "signals"));
-        onSnapshot(iceQuery, async (snapshot) => {
-          for (const change of snapshot.docChanges()) {
-            if (change.type === "added") {
-              const data = change.doc.data();
               if (data.type === "ice" && data.sender === "caller") {
-                try {
-                  await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-                } catch (e) { console.log("Gagal tambah ICE (Receiver):", e); }
+                try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) { console.log(e); }
               }
             }
           }
@@ -286,9 +264,7 @@
   };
 
   window.endCall = async () => {
-    try {
-      await updateDoc(doc(db, "calls", callId), { status: "ended" });
-    } catch (e) { console.log(e); }
+    try { await updateDoc(doc(db, "calls", callId), { status: "ended" }); } catch (e) { console.log(e); }
     cleanupAndExit();
   };
 
