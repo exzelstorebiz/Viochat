@@ -129,35 +129,6 @@
 </div>
 
 <script type="module">
-  // === FUNGSI NADA NOTIFIKASI (CHIME) ===
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  const audioCtx = new AudioContext();
-
-  function playNotificationSound() {
-    if (document.hidden) return; 
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-
-    function playNote(frequency, startTime, duration, type = 'triangle') {
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      oscillator.type = type;
-      oscillator.frequency.value = frequency;
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      oscillator.start(startTime);
-      oscillator.stop(startTime + duration);
-    }
-
-    const now = audioCtx.currentTime;
-    playNote(1318.5, now, 0.4);       
-    playNote(1046.5, now + 0.15, 0.4); 
-    playNote(880, now + 0.3, 0.6);     
-  }
-  // =====================================
-
   const splashOverlay = document.getElementById('splash-overlay');
   if (!sessionStorage.getItem('splashShown')) {
     splashOverlay.style.display = 'flex';
@@ -170,7 +141,7 @@
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
@@ -188,6 +159,7 @@
   let currentUser = null;
   let chatDataStore = [];
   let currentTab = 'semua';
+  let callListenerUnsubscribe = null; // Untuk menghentikan pendengar panggilan
 
   window.switchTab = (tab) => {
     currentTab = tab;
@@ -201,6 +173,7 @@
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
+      
       try {
         const myDoc = await getDoc(doc(db, "users", user.uid));
         if (myDoc.exists()) {
@@ -217,10 +190,36 @@
 
       await initChatList();
       listenToGroupUnread(); 
+      listenToIncomingCalls(); // <--- MEMANGGIL FUNGSI PENDENGAR PANGGILAN
+      
     } else {
       setTimeout(() => { if (!auth.currentUser) window.location.href = "vio-login.html"; }, 1500);
     }
   });
+
+  // === FUNGSI MENDENGARKAN PANGGILAN MASUK ===
+  function listenToIncomingCalls() {
+    // Dengarkan panggilan yang receiverId-nya adalah user ini dan statusnya masih "ringing"
+    const q = query(
+      collection(db, "calls"), 
+      where("receiverId", "==", currentUser.uid),
+      where("status", "==", "ringing")
+    );
+
+    callListenerUnsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          // Ada panggilan masuk baru!
+          const callId = change.doc.id;
+          // Hentikan pendengar sebentar agar tidak dobel
+          if (callListenerUnsubscribe) callListenerUnsubscribe(); 
+          // Arahkan ke halaman panggilan masuk
+          window.location.href = `panggilan_masuk.html?callId=${callId}`;
+        }
+      });
+    });
+  }
+  // ============================================
 
   async function initChatList() {
     const container = document.getElementById('dynamic-contacts');
@@ -269,18 +268,11 @@
 
       onSnapshot(collection(db, "last_messages"), (snapshot) => {
         let needUpdate = false;
-        let hasNewMessage = false; // Penanda suara
-
         snapshot.docChanges().forEach((change) => {
           const summaryData = change.doc.data();
           const roomIdChanged = change.doc.id;
           const index = chatDataStore.findIndex(c => [currentUser.uid, c.contact.id].sort().join("_") === roomIdChanged);
           
-          // Jika ini pesan baru dari orang lain
-          if ((change.type === "added" || change.type === "modified") && summaryData.senderId !== currentUser.uid) {
-            hasNewMessage = true;
-          }
-
           if (index !== -1) {
             if (summaryData.updatedAt) {
               const date = summaryData.updatedAt.toDate();
@@ -297,9 +289,7 @@
             needUpdate = true;
           }
         });
-        
         if (needUpdate) renderChatListUI();
-        if (hasNewMessage) playNotificationSound(); // Panggil suara
       });
 
     } catch (error) { container.innerHTML = `<div style="text-align: center; padding: 20px; color: red;">Gagal memuat: ${error.message}</div>`; }
