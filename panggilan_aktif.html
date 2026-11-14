@@ -73,7 +73,8 @@
   </div>
 </div>
 
-<audio id="remote-audio" autoplay></audio>
+<!-- Tag Audio: Tambahkan playsinline -->
+<audio id="remote-audio" autoplay playsinline></audio>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -93,7 +94,6 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // Konfigurasi STUN Server Google (Gratis)
   const servers = {
     iceServers: [
       { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
@@ -117,7 +117,6 @@
     if (user) {
       currentUser = user;
       
-      // Timer
       timerInterval = setInterval(() => {
         seconds++;
         const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -125,7 +124,6 @@
         document.getElementById('timer').innerText = `${mins}:${secs}`;
       }, 1000);
 
-      // Tampilkan Info Lawan
       try {
         const callDoc = await getDoc(doc(db, "calls", callId));
         if (callDoc.exists()) {
@@ -145,10 +143,8 @@
         }
       } catch (e) { console.log(e); }
 
-      // Mulai WebRTC dengan Jeda
       await startWebRTC();
 
-      // Dengarkan jika panggilan diakhiri
       callUnsubscribe = onSnapshot(doc(db, "calls", callId), (docSnap) => {
         if (docSnap.exists() && docSnap.data().status === "ended") cleanupAndExit();
       });
@@ -160,15 +156,22 @@
 
   async function startWebRTC() {
     try {
-      // === JURUS JEDA 1 DETIK ===
+      // Jeda 1 detik (hindari bug Chrome Android)
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // 1. Minta izin mikrofon
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       
       localStream.getTracks().forEach(track => {
         pc.addTrack(track, localStream);
       });
+
+      // === PANTAU STATUS KONEKSI ===
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE State:", pc.iceConnectionState);
+        if (pc.iceConnectionState === 'failed') {
+          alert("Koneksi suara gagal. Coba matikan Wi-Fi atau gunakan jaringan lain.");
+        }
+      };
 
       pc.ontrack = (event) => {
         if (!remoteStream) {
@@ -176,6 +179,9 @@
           remoteAudio.srcObject = remoteStream;
         }
         remoteStream.addTrack(event.track);
+        
+        // === PAKSA PUTAR AUDIO ===
+        remoteAudio.play().catch(e => console.log("Gagal autoplay:", e));
       };
 
       pc.onicecandidate = (event) => {
@@ -199,7 +205,6 @@
           sdpType: offerDescription.type
         });
 
-        // Tunggu jawaban
         const signalsQuery = query(collection(db, "calls", callId, "signals"));
         signalUnsubscribe = onSnapshot(signalsQuery, async (snapshot) => {
           for (const change of snapshot.docChanges()) {
@@ -217,7 +222,6 @@
           }
         });
       } else {
-        // Receiver: Tunggu offer
         const signalsQuery = query(collection(db, "calls", callId, "signals"));
         signalUnsubscribe = onSnapshot(signalsQuery, async (snapshot) => {
           for (const change of snapshot.docChanges()) {
