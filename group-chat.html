@@ -100,8 +100,6 @@
     <div class="chat-header-name" id="chat-name">Memuat...</div>
     <div class="chat-header-status"><span class="online-dot"></span> online</div>
   </div>
-  <!-- Tombol Panggil -->
-  <div class="call-btn" onclick="startCall()" style="font-size: 22px; cursor: pointer; padding-left: 10px;">📞</div>
 </div>
 
   <!-- Area Chat -->
@@ -381,33 +379,7 @@
     if (e.key === 'Enter') window.sendMsg();
   });
 
-  // === FUNGSI MEMULAI PANGGILAN ===
-window.startCall = async () => {
-  if (!currentUser || !targetUid) return;
-
-  try {
-    // Ambil data profil pemanggil
-    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-    const userData = userDoc.exists() ? userDoc.data() : {};
-    const callerName = userData.displayName || currentUser.email.split('@')[0];
-
-    // Buat dokumen panggilan baru di Firestore
-    const callRef = await addDoc(collection(db, "calls"), {
-      callerId: currentUser.uid,
-      callerName: callerName,
-      receiverId: targetUid,
-      status: "ringing",
-      createdAt: serverTimestamp()
-    });
-
-    // Arahkan ke halaman panggilan keluar dengan membawa ID panggilan
-    window.location.href = `panggilan_keluar.html?callId=${callRef.id}`;
-
-  } catch (error) {
-    console.error("Gagal memulai panggilan:", error);
-    alert("Gagal memulai panggilan. Pastikan aturan Firestore sudah benar.");
-  }
-};
+  
 </script>
 </body>
 </html>
