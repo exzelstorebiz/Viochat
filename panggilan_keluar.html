@@ -6,76 +6,29 @@
 <title>VioChat - Memanggil...</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --violet-600: #7C3AED; --violet-500: #8B5CF6; --violet-100: #EDE9FE;
-    --orange-500: #F97316; --green: #10B981; --red: #EF4444;
-    --bg-light: #F8F6FF; --white: #FFFFFF;
-    --text-dark: #1F2937; --text-muted: #6B7280;
-  }
+  /* ... (CSS SAMA SEPERTI SEBELUMNYA, TIDAK DIUBAH) ... */
+  :root { --violet-600: #7C3AED; --violet-500: #8B5CF6; --violet-100: #EDE9FE; --orange-500: #F97316; --green: #10B981; --red: #EF4444; --bg-light: #F8F6FF; --white: #FFFFFF; --text-dark: #1F2937; --text-muted: #6B7280; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  
-  body {
-    font-family: 'Inter', sans-serif;
-    background: var(--bg-light);
-    background-image: 
-      radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.12) 0%, transparent 40%),
-      radial-gradient(circle at 85% 80%, rgba(249, 115, 22, 0.08) 0%, transparent 40%);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    padding: 16px;
-    color: var(--text-dark);
-  }
-
-  .call-screen {
-    width: 100%; max-width: 400px; height: 85vh;
-    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-    padding: 40px 20px;
-  }
-
-  /* Bagian Atas: Status */
+  body { font-family: 'Inter', sans-serif; background: var(--bg-light); background-image: radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.12) 0%, transparent 40%), radial-gradient(circle at 85% 80%, rgba(249, 115, 22, 0.08) 0%, transparent 40%); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; color: var(--text-dark); }
+  .call-screen { width: 100%; max-width: 400px; height: 85vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 40px 20px; }
   .call-header { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
   .status-text { font-size: 15px; color: var(--orange-500); letter-spacing: 1.5px; font-weight: 500; margin-bottom: 20px; animation: pulseText 1.5s infinite; }
   @keyframes pulseText { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-
-  /* Bagian Tengah: Avatar & Nama */
   .caller-info { display: flex; flex-direction: column; align-items: center; margin-top: -40px; }
   .avatar-container { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; width: 120px; height: 120px; }
-  .avatar {
-    width: 100%; height: 100%; border-radius: 50%;
-    background: linear-gradient(135deg, var(--violet-500), var(--violet-600));
-    display: flex; justify-content: center; align-items: center;
-    font-size: 48px; font-weight: 700; color: white;
-    z-index: 10; position: relative; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.25);
-  }
-  .ripple {
-    position: absolute; width: 100%; height: 100%; border-radius: 50%;
-    border: 2px solid var(--violet-500); animation: rippleEffect 2s infinite ease-out; z-index: 1;
-  }
+  .avatar { width: 100%; height: 100%; border-radius: 50%; background: linear-gradient(135deg, var(--violet-500), var(--violet-600)); display: flex; justify-content: center; align-items: center; font-size: 48px; font-weight: 700; color: white; z-index: 10; position: relative; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.25); }
+  .ripple { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 2px solid var(--violet-500); animation: rippleEffect 2s infinite ease-out; z-index: 1; }
   .ripple:nth-child(2) { animation-delay: 0.6s; }
   .ripple:nth-child(3) { animation-delay: 1.2s; }
-  @keyframes rippleEffect {
-    0% { transform: scale(1); opacity: 0.8; }
-    100% { transform: scale(2.5); opacity: 0; }
-  }
+  @keyframes rippleEffect { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(2.5); opacity: 0; } }
   .caller-name { font-size: 28px; font-weight: 700; color: var(--text-dark); letter-spacing: -0.5px; margin-bottom: 8px; }
   .call-type { font-size: 14px; color: var(--text-muted); font-weight: 500; letter-spacing: 0.5px; }
-
-  /* Bagian Bawah: Tombol */
   .call-actions { display: flex; justify-content: center; width: 100%; margin-bottom: 20px; }
   .action-btn { display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; }
-  .btn-icon {
-    width: 72px; height: 72px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
-    font-size: 30px; color: white; transition: transform 0.2s;
-    background: linear-gradient(135deg, #EF4444, #B91C1C);
-    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
-    transform: rotate(135deg);
-  }
+  .btn-icon { width: 72px; height: 72px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; color: white; transition: transform 0.2s; background: linear-gradient(135deg, #EF4444, #B91C1C); box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3); transform: rotate(135deg); }
   .btn-icon span { transform: rotate(-135deg); }
   .action-btn:active .btn-icon { transform: rotate(135deg) scale(0.9); }
   .btn-label { font-size: 13px; color: var(--text-muted); font-weight: 600; }
-
 </style>
 </head>
 <body>
@@ -87,9 +40,7 @@
 
   <div class="caller-info">
     <div class="avatar-container">
-      <div class="ripple"></div>
-      <div class="ripple"></div>
-      <div class="ripple"></div>
+      <div class="ripple"></div><div class="ripple"></div><div class="ripple"></div>
       <div class="avatar" id="receiver-avatar">?</div>
     </div>
     <div class="caller-name" id="receiver-name">Memuat...</div>
@@ -107,85 +58,48 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, updateDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
-    authDomain: "viochat-2528a.firebaseapp.com",
-    projectId: "viochat-2528a",
-    storageBucket: "viochat-2528a.firebasestorage.app",
-    messagingSenderId: "296507148175",
-    appId: "1:296507148175:web:933c3fd682999649726dfa"
-  };
-
+  const firebaseConfig = { /* CONFIG ANDA */ apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE", authDomain: "viochat-2528a.firebaseapp.com", projectId: "viochat-2528a", storageBucket: "viochat-2528a.firebasestorage.app", messagingSenderId: "296507148175", appId: "1:296507148175:web:933c3fd682999649726dfa" };
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // === FUNGSI NADA DERING KELUAR (DIAL TONE MARIMBA) ===
+  // === FUNGSI NADA DERING KELUAR ===
   const AudioContext = window.AudioContext || window.webkitAudioContext;
-  let audioCtx = null;
-  let ringtoneInterval = null;
-
+  let audioCtx = null; let ringtoneInterval = null;
   function startRingtone() {
     if (!audioCtx) audioCtx = new AudioContext();
     if (audioCtx.state === 'suspended') audioCtx.resume();
-
     const playPattern = () => {
       const now = audioCtx.currentTime;
-      // Nada G4 (392 Hz) selama 1 detik
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      oscillator.type = 'triangle';
-      oscillator.frequency.value = 392.0;
-      gainNode.gain.setValueAtTime(0, now);
-      gainNode.gain.linearRampToValueAtTime(0.2, now + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 1.0);
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      osc.type = 'triangle'; osc.frequency.value = 392.0;
+      gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.2, now + 0.02); gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+      osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now); osc.stop(now + 1.0);
     };
-
-    playPattern();
-    ringtoneInterval = setInterval(playPattern, 2500); // Ulangi setiap 2.5 detik
+    playPattern(); ringtoneInterval = setInterval(playPattern, 2500);
   }
-
-  function stopRingtone() {
-    if (ringtoneInterval) { clearInterval(ringtoneInterval); ringtoneInterval = null; }
-    if (audioCtx) { audioCtx.close(); audioCtx = null; }
-  }
-  // =====================================================
+  function stopRingtone() { if (ringtoneInterval) { clearInterval(ringtoneInterval); ringtoneInterval = null; } if (audioCtx) { audioCtx.close(); audioCtx = null; } }
 
   const urlParams = new URLSearchParams(window.location.search);
   const callId = urlParams.get('callId');
-  let currentUser = null;
-  let unsubscribeCall = null;
-
-  if (!callId) {
-    alert("ID Panggilan tidak ditemukan.");
-    window.location.href = "index.html";
-  }
+  let currentUser = null; let callUnsubscribe = null;
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
-      startRingtone(); // Mulai nada dering
+      startRingtone();
       listenToCallStatus();
-    } else {
-      window.location.href = "vio-login.html";
-    }
+    } else { window.location.href = "vio-login.html"; }
   });
 
   async function listenToCallStatus() {
     const callRef = doc(db, "calls", callId);
-    
-    // Ambil data panggilan pertama kali untuk menampilkan nama penerima
     try {
       const callDoc = await getDoc(callRef);
       if (callDoc.exists()) {
         const callData = callDoc.data();
-        // Ambil data profil penerima
         const receiverDoc = await getDoc(doc(db, "users", callData.receiverId));
         if (receiverDoc.exists()) {
           const receiverData = receiverDoc.data();
@@ -200,26 +114,17 @@
       }
     } catch (e) { console.log(e); }
 
-    // Dengarkan perubahan status secara real-time
-    unsubscribeCall = onSnapshot(callRef, (docSnap) => {
+    callUnsubscribe = onSnapshot(callRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        
         if (data.status === "accepted") {
-          // Panggilan diterima!
           stopRingtone();
-          unsubscribeCall(); // Berhenti mendengarkan
+          if (callUnsubscribe) callUnsubscribe();
+          // Pindah ke halaman aktif dengan role caller
           window.location.href = `panggilan_aktif.html?callId=${callId}&role=caller`;
-        } else if (data.status === "rejected") {
-          // Panggilan ditolak
-          stopRingtone();
-          unsubscribeCall();
-          alert("Panggilan ditolak oleh penerima.");
-          window.history.back(); // Kembali ke chat
-        } else if (data.status === "ended") {
-          // Panggilan diakhiri (misal oleh sistem)
-          stopRingtone();
-          unsubscribeCall();
+        } else if (data.status === "rejected" || data.status === "ended") {
+          stopRingtone(); if (callUnsubscribe) callUnsubscribe();
+          if (data.status === "rejected") alert("Panggilan ditolak oleh penerima.");
           window.history.back();
         }
       }
@@ -227,14 +132,10 @@
   }
 
   window.endCall = async () => {
-    stopRingtone();
-    if (unsubscribeCall) unsubscribeCall();
-    try {
-      await updateDoc(doc(db, "calls", callId), { status: "ended" });
-    } catch (e) { console.log(e); }
+    stopRingtone(); if (callUnsubscribe) callUnsubscribe();
+    try { await updateDoc(doc(db, "calls", callId), { status: "ended" }); } catch (e) { console.log(e); }
     window.history.back();
   };
 </script>
-
 </body>
 </html>
