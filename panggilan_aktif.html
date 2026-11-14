@@ -8,7 +8,7 @@
 <style>
   :root {
     --violet-600: #7C3AED; --violet-500: #8B5CF6; --violet-100: #EDE9FE;
-    --green: #10B981; --red: #EF4444; --white: #FFFFFF;
+    --green: #10B981; --red: #EF4444; --orange: #F97316; --white: #FFFFFF;
     --bg-light: #F8F6FF; --text-dark: #1F2937; --text-muted: #6B7280; --border-light: #E5E7EB;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -17,8 +17,8 @@
   .call-header { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
   .call-type { font-size: 13px; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 10px; font-weight: 500; }
   .timer { font-size: 48px; font-weight: 700; color: var(--violet-600); letter-spacing: -1px; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
-  .status-text { font-size: 14px; color: var(--green); font-weight: 500; display: flex; align-items: center; gap: 6px; }
-  .status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulseDot 2s infinite; }
+  .status-text { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: color 0.3s; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulseDot 2s infinite; }
   @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
   .caller-info { display: flex; flex-direction: column; align-items: center; margin-top: -40px; }
   .avatar-container { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; width: 140px; height: 140px; }
@@ -47,7 +47,10 @@
   <div class="call-header">
     <div class="call-type">VioChat Audio Call</div>
     <div class="timer" id="timer">00:00</div>
-    <div class="status-text"><span class="status-dot"></span> Terhubung</div>
+    <!-- ALAT DETEKSI KONEKSI -->
+    <div class="status-text" id="connection-status" style="color: var(--orange);">
+      <span class="status-dot"></span> <span id="status-label">Menghubungkan...</span>
+    </div>
   </div>
 
   <div class="caller-info">
@@ -73,7 +76,6 @@
   </div>
 </div>
 
-<!-- Tag Audio: Tambahkan playsinline -->
 <audio id="remote-audio" autoplay playsinline></audio>
 
 <script type="module">
@@ -156,7 +158,7 @@
 
   async function startWebRTC() {
     try {
-      // Jeda 1 detik (hindari bug Chrome Android)
+      // Jeda 1 detik
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -165,11 +167,27 @@
         pc.addTrack(track, localStream);
       });
 
-      // === PANTAU STATUS KONEKSI ===
+      // === ALAT DETEKSI STATUS KONEKSI ===
       pc.oniceconnectionstatechange = () => {
-        console.log("ICE State:", pc.iceConnectionState);
-        if (pc.iceConnectionState === 'failed') {
-          alert("Koneksi suara gagal. Coba matikan Wi-Fi atau gunakan jaringan lain.");
+        const state = pc.iceConnectionState;
+        const label = document.getElementById('status-label');
+        const statusEl = document.getElementById('connection-status');
+        
+        console.log("ICE State:", state);
+        
+        if (state === 'checking') {
+          label.innerText = "Mencari jalur...";
+          statusEl.style.color = "var(--orange)";
+        } else if (state === 'connected' || state === 'completed') {
+          label.innerText = "Terhubung (Suara Aktif)";
+          statusEl.style.color = "var(--green)";
+        } else if (state === 'failed') {
+          label.innerText = "Gagal Terhubung (Jaringan)";
+          statusEl.style.color = "var(--red)";
+          alert("Koneksi suara gagal. Ini karena jaringan. Coba matikan Wi-Fi dan gunakan data seluler di kedua HP.");
+        } else if (state === 'disconnected') {
+          label.innerText = "Terputus...";
+          statusEl.style.color = "var(--red)";
         }
       };
 
@@ -180,7 +198,7 @@
         }
         remoteStream.addTrack(event.track);
         
-        // === PAKSA PUTAR AUDIO ===
+        // Paksa putar audio
         remoteAudio.play().catch(e => console.log("Gagal autoplay:", e));
       };
 
