@@ -43,33 +43,16 @@
   .msg .time { font-size: 10px; opacity: 0.8; margin-top: 4px; text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
   .check-icon { font-size: 12px; font-weight: bold; color: var(--orange-400); }
 
-  /* === INDIKATOR TYPING GRUP (Revisi Total) === */
-  .typing-indicator-wrapper {
-    display: none;
-    align-self: flex-start;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-top: 4px;
-    margin-bottom: 4px;
-    z-index: 5;
-  }
-
+  /* === INDIKATOR TYPING GRUP === */
+  .typing-indicator-wrapper { display: none; align-self: flex-start; flex-direction: column; align-items: flex-start; margin-top: 4px; margin-bottom: 4px; z-index: 5; }
   .typing-avatars { display: flex; align-items: center; margin-bottom: 4px; margin-left: 4px; }
   .typing-avatars .t-avatar { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--violet-50); background: var(--violet-400); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; overflow: hidden; margin-left: -8px; position: relative; }
   .typing-avatars .t-avatar:first-child { margin-left: 0; }
   .typing-avatars .t-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .typing-more { font-size: 10px; font-weight: bold; color: var(--violet-700); background: white; padding: 2px 6px; border-radius: 10px; margin-left: 6px; border: 1px solid var(--violet-100); z-index: 2; }
-
   .typing-info { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; margin-left: 4px; }
   .typing-name { font-size: 11px; font-weight: 600; color: var(--orange-600); }
-  
-  /* Bubble animasi (Sekarang terpisah) */
-  .typing-bubble { 
-    padding: 10px 14px; background: var(--white); border-radius: 18px 18px 18px 4px; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); 
-    display: flex; align-items: center; width: fit-content; 
-    margin-left: 4px;
-  }
+  .typing-bubble { padding: 10px 14px; background: var(--white); border-radius: 18px 18px 18px 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); display: flex; align-items: center; width: fit-content; margin-left: 4px; }
   .typing-dots { display: flex; gap: 4px; align-items: center; height: 14px; }
   .typing-dots span { width: 6px; height: 6px; background-color: var(--violet-500); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
   .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
@@ -93,20 +76,21 @@
 <div id="debug-box">Memuat...</div>
 
 <div class="phone">
+  <!-- HEADER GRUP YANG BENAR -->
   <div class="chat-header">
-  <div class="back-btn" onclick="window.location.href='index.html'">‹</div>
-  <div class="avatar" id="chat-avatar">?</div>
-  <div class="chat-header-info">
-    <div class="chat-header-name" id="chat-name">Memuat...</div>
-    <div class="chat-header-status"><span class="online-dot"></span> online</div>
+    <div class="back-btn" onclick="window.location.href='index.html'">‹</div>
+    <div class="avatar">👨‍👩‍👧‍👦</div>
+    <div class="chat-header-info">
+      <div class="chat-header-name">Keluarga Mbah Papi</div>
+      <div class="chat-header-status"><span id="member-count">Memuat anggota...</span></div>
+    </div>
   </div>
-</div>
 
   <!-- Area Chat -->
   <div class="chat-messages bg-aurora" id="chat-messages">
     <div class="date-divider">Memuat pesan grup...</div>
     
-    <!-- TYPING INDICATOR (Sekarang di DALAM chat-messages) -->
+    <!-- TYPING INDICATOR -->
     <div class="typing-indicator-wrapper" id="typing-indicator">
       <div class="typing-avatars" id="typing-avatars-container"></div>
       <div class="typing-info" id="typing-info-container">
@@ -152,10 +136,11 @@
     playNote(1318.5, now, 0.4); playNote(1046.5, now + 0.15, 0.4); playNote(880, now + 0.3, 0.6);     
   }
 
+  // IMPORT LENGKAP
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, getDocs, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  
+
   const firebaseConfig = {
     apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
     authDomain: "viochat-2528a.firebaseapp.com",
@@ -178,7 +163,6 @@
       currentUser = user;
       logDebug("User Login: " + user.email);
       
-      // PERBAIKAN 4: Hanya tandai dibaca saat membuka halaman grup
       const readRef = doc(db, "groups", GROUP_ID, "read_status", currentUser.uid);
       setDoc(readRef, { lastReadAt: serverTimestamp() }, { merge: true }).catch(e => console.log(e));
 
@@ -201,12 +185,8 @@
     const q = query(collection(db, "groups", GROUP_ID, "messages"), orderBy("createdAt", "asc"));
 
     onSnapshot(q, (snapshot) => {
-      // PERBAIKAN 3: Simpan indikator typing agar tidak terhapus
       let typingIndicator = document.getElementById('typing-indicator');
-      
       msgContainer.innerHTML = '';
-      
-      // Kembalikan indikator typing ke dalam chat
       if (typingIndicator) msgContainer.appendChild(typingIndicator);
 
       let lastDateString = "";
@@ -327,14 +307,11 @@
 
       typingContainer.style.display = 'flex';
 
-      // PERBAIKAN 1 & 2: Logika Render
       if (typers.length === 1) {
-        // Kondisi 1 Orang: Sembunyikan avatar, tampilkan info (nama)
         infoContainer.style.display = 'flex';
         avatarsContainer.style.display = 'none';
         nameEl.innerText = typers[0].name;
       } else {
-        // Kondisi Banyak Orang: Sembunyikan info (nama), tampilkan avatar
         infoContainer.style.display = 'none';
         avatarsContainer.style.display = 'flex';
         avatarsContainer.innerHTML = '';
@@ -378,8 +355,6 @@
   document.getElementById('chatInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') window.sendMsg();
   });
-
-  
 </script>
 </body>
 </html>
