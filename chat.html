@@ -67,20 +67,23 @@
 <body>
 
 <div class="phone">
+  <!-- HEADER CHAT YANG BENAR -->
   <div class="chat-header">
-  <div class="back-btn" onclick="window.location.href='index.html'">‹</div>
-  <div class="avatar" id="chat-avatar">?</div>
-  <div class="chat-header-info">
-    <div class="chat-header-name" id="chat-name">Memuat...</div>
-    <div class="chat-header-status"><span class="online-dot"></span> online</div>
-  </div>
-<!-- Tombol Panggil (Dikunci Ukurannya) -->
-<div onclick="startCall()" style="cursor: pointer; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; border-radius: 50%; background: rgba(255,255,255,0.1);">
-  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px; min-width: 22px; max-width: 22px;">
-    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-  </svg>
-</div>
+    <div class="back-btn" onclick="window.location.href='index.html'">‹</div>
+    <div class="avatar" id="chat-avatar">?</div>
+    <div class="chat-header-info">
+      <div class="chat-header-name" id="chat-name">Memuat...</div>
+      <div class="chat-header-status"><span class="online-dot"></span> online</div>
+    </div>
+    <!-- Tombol Panggil (Dikunci Ukurannya) -->
+    <div onclick="startCall()" style="cursor: pointer; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; border-radius: 50%; background: rgba(255,255,255,0.1);">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px; min-width: 22px; max-width: 22px;">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+      </svg>
+    </div>
+  </div> <!-- PENUTUP HEADER YANG TADI HILANG -->
 
+  <!-- AREA CHAT -->
   <div class="chat-messages bg-aurora" id="chat-messages">
     <div class="date-divider" id="loading-text">Memuat pesan...</div>
     <div class="typing-indicator-wrapper" id="typing-wrapper">
@@ -188,14 +191,12 @@
       msgContainer.innerHTML = '';
       let lastDateString = "";
 
-      // --- LOGIKA SUARA NOTIFIKASI ---
       let hasNewIncomingMessage = false;
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added" && change.doc.data().senderId !== currentUser.uid) {
            hasNewIncomingMessage = true;
         }
       });
-      // --------------------------------
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
@@ -241,7 +242,6 @@
         msgContainer.appendChild(msgDiv);
       });
 
-      // Mainkan suara jika ada pesan baru
       if (hasNewIncomingMessage) playNotificationSound();
 
       if (typingWrapper) msgContainer.appendChild(typingWrapper);
@@ -304,33 +304,29 @@
   });
 
   // === FUNGSI MEMULAI PANGGILAN ===
-window.startCall = async () => {
-  if (!currentUser || !targetUid) return;
+  window.startCall = async () => {
+    if (!currentUser || !targetUid) return;
 
-  try {
-    // Ambil data profil pemanggil
-    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-    const userData = userDoc.exists() ? userDoc.data() : {};
-    const callerName = userData.displayName || currentUser.email.split('@')[0];
+    try {
+      const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+      const userData = userDoc.exists() ? userDoc.data() : {};
+      const callerName = userData.displayName || currentUser.email.split('@')[0];
 
-    // Buat dokumen panggilan baru di Firestore
-    const callRef = await addDoc(collection(db, "calls"), {
-      callerId: currentUser.uid,
-      callerName: callerName,
-      receiverId: targetUid,
-      status: "ringing",
-      createdAt: serverTimestamp()
-    });
+      const callRef = await addDoc(collection(db, "calls"), {
+        callerId: currentUser.uid,
+        callerName: callerName,
+        receiverId: targetUid,
+        status: "ringing",
+        createdAt: serverTimestamp()
+      });
 
-    // Arahkan ke halaman panggilan keluar dengan membawa ID panggilan
-    window.location.href = `panggilan_keluar.html?callId=${callRef.id}`;
+      window.location.href = `panggilan_keluar.html?callId=${callRef.id}`;
 
-  } catch (error) {
-    console.error("Gagal memulai panggilan:", error);
-    alert("Gagal memulai panggilan. Pastikan aturan Firestore sudah benar.");
-  }
-};
-  
+    } catch (error) {
+      console.error("Gagal memulai panggilan:", error);
+      alert("Gagal memulai panggilan. Pastikan aturan Firestore sudah benar.");
+    }
+  };
 </script>
 </body>
 </html>
