@@ -94,13 +94,15 @@
 
 <div class="phone">
   <div class="chat-header">
-    <div class="back-btn" onclick="window.location.href='index.html'">‹</div>
-    <div class="avatar">👨‍👩‍👧‍👦</div>
-    <div class="chat-header-info">
-      <div class="chat-header-name">Keluarga Mbah Papi</div>
-      <div class="chat-header-status"><span id="member-count">Memuat anggota...</span></div>
-    </div>
+  <div class="back-btn" onclick="window.location.href='index.html'">‹</div>
+  <div class="avatar" id="chat-avatar">?</div>
+  <div class="chat-header-info">
+    <div class="chat-header-name" id="chat-name">Memuat...</div>
+    <div class="chat-header-status"><span class="online-dot"></span> online</div>
   </div>
+  <!-- Tombol Panggil -->
+  <div class="call-btn" onclick="startCall()" style="font-size: 22px; cursor: pointer; padding-left: 10px;">📞</div>
+</div>
 
   <!-- Area Chat -->
   <div class="chat-messages bg-aurora" id="chat-messages">
@@ -154,7 +156,7 @@
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, getDocs, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
@@ -378,6 +380,34 @@
   document.getElementById('chatInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') window.sendMsg();
   });
+
+  // === FUNGSI MEMULAI PANGGILAN ===
+window.startCall = async () => {
+  if (!currentUser || !targetUid) return;
+
+  try {
+    // Ambil data profil pemanggil
+    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+    const userData = userDoc.exists() ? userDoc.data() : {};
+    const callerName = userData.displayName || currentUser.email.split('@')[0];
+
+    // Buat dokumen panggilan baru di Firestore
+    const callRef = await addDoc(collection(db, "calls"), {
+      callerId: currentUser.uid,
+      callerName: callerName,
+      receiverId: targetUid,
+      status: "ringing",
+      createdAt: serverTimestamp()
+    });
+
+    // Arahkan ke halaman panggilan keluar dengan membawa ID panggilan
+    window.location.href = `panggilan_keluar.html?callId=${callRef.id}`;
+
+  } catch (error) {
+    console.error("Gagal memulai panggilan:", error);
+    alert("Gagal memulai panggilan. Pastikan aturan Firestore sudah benar.");
+  }
+};
 </script>
 </body>
 </html>
