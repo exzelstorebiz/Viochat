@@ -14,19 +14,13 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Inter', sans-serif; background-color: #F8F6FF; background-image: radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.12) 0%, transparent 40%), radial-gradient(circle at 85% 80%, rgba(249, 115, 22, 0.08) 0%, transparent 40%); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; color: var(--text-dark); }
   .call-screen { width: 100%; max-width: 400px; height: 85vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 40px 20px; }
-  
-  /* PERBAIKAN: Header diberi z-index agar teks status di atas avatar */
   .call-header { display: flex; flex-direction: column; align-items: center; margin-top: 20px; z-index: 20; position: relative; }
-  
   .call-type { font-size: 13px; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 10px; font-weight: 500; }
   .timer { font-size: 48px; font-weight: 700; color: var(--violet-600); letter-spacing: -1px; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
   .status-text { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: color 0.3s; }
   .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulseDot 2s infinite; }
   @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
-  
-  /* PERBAIKAN: Margin-top avatar tidak terlalu negatif agar tidak menutupi status */
   .caller-info { display: flex; flex-direction: column; align-items: center; margin-top: 10px; }
-  
   .avatar-container { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; width: 140px; height: 140px; }
   .avatar { width: 100%; height: 100%; border-radius: 50%; background: linear-gradient(135deg, var(--violet-500), var(--violet-600)); display: flex; justify-content: center; align-items: center; font-size: 56px; font-weight: 700; color: white; z-index: 10; position: relative; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.25); }
   .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
@@ -34,7 +28,6 @@
   .pulse-ring:nth-child(2) { animation-delay: 1.5s; }
   @keyframes slowRipple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
   .caller-name { font-size: 28px; font-weight: 700; color: var(--text-dark); letter-spacing: -0.5px; }
-  
   .call-actions { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 30px; margin-bottom: 20px; }
   .secondary-actions { display: flex; justify-content: center; gap: 40px; width: 100%; }
   .action-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
@@ -54,7 +47,6 @@
   <div class="call-header">
     <div class="call-type">VioChat Audio Call</div>
     <div class="timer" id="timer">00:00</div>
-    <!-- Teks Status Koneksi (Sekarang di atas avatar) -->
     <div class="status-text" id="connection-status" style="color: var(--orange);">
       <span class="status-dot"></span> <span id="status-label">Menghubungkan...</span>
     </div>
@@ -103,11 +95,23 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
+  // KONFIGURASI TURN SERVER (METERED)
   const servers = {
     iceServers: [
-      { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
+      { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
+      {
+        urls: "turn:global.relay.metered.ca:80",
+        username: "c9100554b093206f07dc09bc", // <--- GANTI INI
+        credential: "qRh2abSlo1bajF9w" // <--- GANTI INI
+      },
+      {
+        urls: "turn:global.relay.metered.ca:443",
+        username: "c9100554b093206f07dc09bc", // <--- GANTI INI
+        credential: "qRh2abSlo1bajF9w" // <--- GANTI INI
+      }
     ]
   };
+
   let pc = new RTCPeerConnection(servers);
   let localStream = null;
   let remoteStream = null;
@@ -165,15 +169,20 @@
 
   async function startWebRTC() {
     try {
+      // Jeda 1 detik
       await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // Minta mikrofon
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       
-      localStream.getTracks().forEach(track => {
+      // Pastikan mikrofon aktif (tidak ter-mute)
+      localStream.getAudioTracks().forEach(track => {
+        track.enabled = true; // PASTIKAN AKTIF
         pc.addTrack(track, localStream);
+        console.log("Local Audio Track Added:", track.label);
       });
 
-      // ALAT DETEKSI KONEKSI
+      // Deteksi Koneksi
       pc.oniceconnectionstatechange = () => {
         const state = pc.iceConnectionState;
         const label = document.getElementById('status-label');
@@ -190,19 +199,23 @@
         } else if (state === 'failed') {
           label.innerText = "Gagal Terhubung (Jaringan)";
           statusEl.style.color = "var(--red)";
-          alert("Koneksi suara gagal. Ini karena jaringan. Coba matikan Wi-Fi dan gunakan data seluler di kedua HP.");
         } else if (state === 'disconnected') {
           label.innerText = "Terputus...";
           statusEl.style.color = "var(--red)";
         }
       };
 
+      // Tangani audio masuk dari lawan
       pc.ontrack = (event) => {
+        console.log("Menerima Remote Track:", event.track.kind);
+        
         if (!remoteStream) {
           remoteStream = new MediaStream();
           remoteAudio.srcObject = remoteStream;
         }
         remoteStream.addTrack(event.track);
+        
+        // Paksa putar audio
         remoteAudio.play().catch(e => console.log("Gagal autoplay:", e));
       };
 
