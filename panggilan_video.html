@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VioChat - Panggilan Video</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --violet-600: #7C3AED; --violet-500: #8B5CF6;
+    --orange-500: #F97316; --green: #10B981; --red: #EF4444;
+    --bg-dark: #0F0A1A; --white: #FFFFFF;
+    --text-muted: rgba(255, 255, 255, 0.6);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background-color: var(--bg-dark); display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; color: white; }
+  
+  .video-container { position: relative; width: 100%; height: 100vh; max-width: 500px; background: #000; overflow: hidden; }
+
+  /* Video Lawan Bicara (Full Screen) */
+  .remote-video {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: 1; background: #1e1b4b;
+  }
+
+  /* Overlay UI */
+  .video-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.8) 100%);
+    z-index: 2; display: flex; flex-direction: column; justify-content: space-between; padding: 40px 20px;
+  }
+
+  /* Info Penelepon */
+  .call-info { text-align: center; margin-top: 20px; }
+  .call-name { font-size: 24px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+  .call-timer { font-size: 14px; color: var(--text-muted); margin-top: 4px; font-variant-numeric: tabular-nums; display: flex; justify-content: center; align-items: center; gap: 6px; }
+  .status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulseDot 2s infinite; }
+  @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
+
+  /* Video Diri Sendiri (PIP) */
+  .local-video {
+    position: absolute; top: 100px; right: 20px; width: 100px; height: 140px;
+    background: #2d1b4e; border-radius: 16px; z-index: 10;
+    border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    object-fit: cover; overflow: hidden;
+  }
+  .local-video video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); /* Mirror effect */ }
+
+  /* Tombol Kontrol */
+  .controls { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; z-index: 10; }
+  .action-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
+  .btn-icon {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px);
+    display: flex; justify-content: center; align-items: center; font-size: 24px; color: white;
+    border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s ease;
+  }
+  .action-btn:active .btn-icon { transform: scale(0.9); }
+  .btn-icon.active { background: var(--red); border-color: var(--red); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
+  
+  .btn-end .btn-icon { width: 72px; height: 72px; background: var(--red); box-shadow: 0 8px 20px rgba(239, 68, 68, 0.5); transform: rotate(135deg); font-size: 28px; border: none; }
+  .btn-end .btn-icon span { transform: rotate(-135deg); }
+  .btn-end:active .btn-icon { transform: rotate(135deg) scale(0.9); }
+  .btn-label { font-size: 11px; color: rgba(255,255,255,0.8); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="video-container">
+  <!-- Video Lawan Bicara -->
+  <video id="remote-video" class="remote-video" autoplay playsinline></video>
+
+  <!-- Overlay UI -->
+  <div class="video-overlay">
+    <div class="call-info">
+      <div class="call-name" id="other-name">Memuat...</div>
+      <div class="call-timer"><span class="status-dot"></span> <span id="timer">00:00</span></div>
+    </div>
+
+    <div></div> <!-- Spacer -->
+
+    <div class="controls">
+      <div class="action-btn" onclick="toggleMute(this)">
+        <div class="btn-icon">🎤</div><div class="btn-label">Mute</div>
+      </div>
+      <div class="action-btn" onclick="toggleVideo(this)">
+        <div class="btn-icon">📹</div><div class="btn-label">Kamera</div>
+      </div>
+      <div class="action-btn" onclick="switchCamera(this)">
+        <div class="btn-icon">🔄</div><div class="btn-label">Flip</div>
+      </div>
+      <div class="action-btn btn-end" onclick="endCall()">
+        <div class="btn-icon"><span>📞</span></div><div class="btn-label">Akhiri</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Diri Sendiri (Kecil) -->
+  <div class="local-video">
+    <video id="local-video" autoplay playsinline muted></video>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc, onSnapshot, collection, addDoc, query } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBlXZ93MHtpowz3xPwlTLcwMiSYhI5eHAE",
+    authDomain: "viochat-2528a.firebaseapp.com",
+    projectId: "viochat-2528a",
+    storageBucket: "viochat-2528a.firebasestorage.app",
+    messagingSenderId: "296507148175",
+    appId: "1:296507148175:web:933c3fd682999649726dfa"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const servers = {
+    iceServers: [
+      { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
+      {
+        urls: "turn:global.relay.metered.ca:80",
+        username: "c9100554b093206f07dc09bc", // <--- GANTI INI
+        credential: "qRh2abSlo1bajF9w" // <--- GANTI INI
+      },
+      {
+        urls: "turn:global.relay.metered.ca:443",
+        username: "c9100554b093206f07dc09bc", // <--- GANTI INI
+        credential: "qRh2abSlo1bajF9w" // <--- GANTI INI
+      }
+    ]
+  };
+  let pc = new RTCPeerConnection(servers);
+  let localStream = null;
+  let remoteStream = null;
+  const remoteVideo = document.getElementById('remote-video');
+  const localVideo = document.getElementById('local-video');
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const callId = urlParams.get('callId');
+  const role = urlParams.get('role'); 
+  let currentUser = null;
+  let timerInterval = null;
+  let seconds = 0;
+  let callUnsubscribe = null;
+  let signalUnsubscribe = null;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      
+      timerInterval = setInterval(() => {
+        seconds++;
+        const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const secs = (seconds % 60).toString().padStart(2, '0');
+        document.getElementById('timer').innerText = `${mins}:${secs}`;
+      }, 1000);
+
+      try {
+        const callDoc = await getDoc(doc(db, "calls", callId));
+        if (callDoc.exists()) {
+          const callData = callDoc.data();
+          const otherId = (callData.callerId === currentUser.uid) ? callData.receiverId : callData.callerId;
+          const otherDoc = await getDoc(doc(db, "users", otherId));
+          if (otherDoc.exists()) {
+            const otherData = otherDoc.data();
+            document.getElementById('other-name').innerText = otherData.displayName || "Kontak";
+          }
+        }
+      } catch (e) { console.log(e); }
+
+      await startVideoCall();
+
+      callUnsubscribe = onSnapshot(doc(db, "calls", callId), (docSnap) => {
+        if (docSnap.exists() && docSnap.data().status === "ended") cleanupAndExit();
+      });
+
+    } else {
+      window.location.href = "vio-login.html";
+    }
+  });
+
+  async function startVideoCall() {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Minta izin kamera & mikrofon
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } });
+      localVideo.srcObject = localStream;
+      
+      localStream.getTracks().forEach(track => {
+        pc.addTrack(track, localStream);
+      });
+
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE State:", pc.iceConnectionState);
+      };
+
+      // Tangani video/audio masuk
+      pc.ontrack = (event) => {
+        if (!remoteStream) {
+          remoteStream = new MediaStream();
+          remoteVideo.srcObject = remoteStream;
+        }
+        remoteStream.addTrack(event.track);
+        remoteVideo.play().catch(e => console.log(e));
+      };
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          addDoc(collection(db, "calls", callId, "signals"), {
+            type: "ice",
+            sender: role,
+            candidate: event.candidate.toJSON()
+          });
+        }
+      };
+
+      if (role === 'caller') {
+        const offerDescription = await pc.createOffer();
+        await pc.setLocalDescription(offerDescription);
+        
+        await addDoc(collection(db, "calls", callId, "signals"), {
+          type: "offer",
+          sender: "caller",
+          sdp: offerDescription.sdp,
+          sdpType: offerDescription.type
+        });
+
+        const signalsQuery = query(collection(db, "calls", callId, "signals"));
+        signalUnsubscribe = onSnapshot(signalsQuery, async (snapshot) => {
+          for (const change of snapshot.docChanges()) {
+            if (change.type === "added") {
+              const data = change.doc.data();
+              if (data.type === "answer" && data.sender === "receiver") {
+                if (pc.signalingState !== 'stable') {
+                   await pc.setRemoteDescription(new RTCSessionDescription({ type: data.sdpType, sdp: data.sdp }));
+                }
+              }
+              if (data.type === "ice" && data.sender === "receiver") {
+                try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) { console.log(e); }
+              }
+            }
+          }
+        });
+      } else {
+        const signalsQuery = query(collection(db, "calls", callId, "signals"));
+        signalUnsubscribe = onSnapshot(signalsQuery, async (snapshot) => {
+          for (const change of snapshot.docChanges()) {
+            if (change.type === "added") {
+              const data = change.doc.data();
+              if (data.type === "offer" && data.sender === "caller") {
+                await pc.setRemoteDescription(new RTCSessionDescription({ type: data.sdpType, sdp: data.sdp }));
+                const answerDescription = await pc.createAnswer();
+                await pc.setLocalDescription(answerDescription);
+                await addDoc(collection(db, "calls", callId, "signals"), {
+                  type: "answer",
+                  sender: "receiver",
+                  sdp: answerDescription.sdp,
+                  sdpType: answerDescription.type
+                });
+              }
+              if (data.type === "ice" && data.sender === "caller") {
+                try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) { console.log(e); }
+              }
+            }
+          }
+        });
+      }
+
+    } catch (error) {
+      console.error("Gagal memulai Video Call:", error);
+      alert("Gagal mengakses kamera/mikrofon. Pastikan Anda memberikan izin.");
+    }
+  }
+
+  let isMuted = false;
+  window.toggleMute = (btn) => {
+    if (!localStream) return;
+    isMuted = !isMuted;
+    localStream.getAudioTracks().forEach(track => { track.enabled = !isMuted; });
+    btn.querySelector('.btn-icon').classList.toggle('active', isMuted);
+  };
+
+  let isVideoOff = false;
+  window.toggleVideo = (btn) => {
+    if (!localStream) return;
+    isVideoOff = !isVideoOff;
+    localStream.getVideoTracks().forEach(track => { track.enabled = !isVideoOff; });
+    btn.querySelector('.btn-icon').classList.toggle('active', isVideoOff);
+  };
+
+  window.switchCamera = async (btn) => {
+    // Logika sederhana untuk ganti kamera depan/belakang (hanya berfungsi di HP)
+    try {
+      const currentFacingMode = localStream.getVideoTracks()[0].getSettings().facingMode;
+      const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+      
+      const newStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: newFacingMode }, 
+        audio: true 
+      });
+      
+      // Hentikan stream lama
+      localStream.getTracks().forEach(track => track.stop());
+      
+      // Ganti stream
+      localStream = newStream;
+      localVideo.srcObject = localStream;
+      
+      // Ganti track di peer connection
+      const videoTrack = localStream.getVideoTracks()[0];
+      const sender = pc.getSenders().find(s => s.track.kind === 'video');
+      if (sender) sender.replaceTrack(videoTrack);
+      
+    } catch (e) { console.log("Gagal ganti kamera:", e); }
+  };
+
+  window.endCall = async () => {
+    try { await updateDoc(doc(db, "calls", callId), { status: "ended" }); } catch (e) { console.log(e); }
+    cleanupAndExit();
+  };
+
+  function cleanupAndExit() {
+    if (timerInterval) clearInterval(timerInterval);
+    if (callUnsubscribe) callUnsubscribe();
+    if (signalUnsubscribe) signalUnsubscribe();
+    if (pc) pc.close();
+    if (localStream) localStream.getTracks().forEach(track => track.stop());
+    window.location.href = "index.html";
+  }
+</script>
+</body>
+</html>
