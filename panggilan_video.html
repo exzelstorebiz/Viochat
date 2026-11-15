@@ -86,10 +86,10 @@
 <body>
 
 <div class="video-container">
-  <!-- Video Lawan Bicara -->
-  <video id="remote-video" class="remote-video" autoplay playsinline></video>
+  <!-- Video Lawan Bicara (Ditambahkan 'muted' agar autoplay berhasil) -->
+  <video id="remote-video" class="remote-video" autoplay playsinline muted></video>
 
-  <!-- Overlay UI (Untuk Penelepon / Saat Panggilan Aktif) -->
+  <!-- Overlay UI -->
   <div class="video-overlay" id="active-call-ui" style="display: none;">
     <div class="call-info">
       <div class="call-name" id="other-name">Memuat...</div>
@@ -114,12 +114,12 @@
     </div>
   </div>
 
-  <!-- Video Diri Sendiri (Kecil) -->
+  <!-- Video Diri Sendiri -->
   <div class="local-video" id="local-video-container" style="display: none;">
     <video id="local-video" autoplay playsinline muted></video>
   </div>
 
-  <!-- === LAYAR PANGGILAN MASUK (Hanya muncul untuk Penerima) === -->
+  <!-- === LAYAR PANGGILAN MASUK === -->
   <div id="incoming-screen" class="hidden">
     <div style="text-align: center; margin-top: 40px;">
       <div class="incoming-text">Panggilan Video Masuk...</div>
@@ -158,7 +158,7 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // KONFIGURASI TURN SERVER (GANTI DENGAN MILIK ANDA)
+  // TURN SERVER (PASTIKAN SUDAH DIISI)
   const servers = {
     iceServers: [
       { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
@@ -189,7 +189,6 @@
   let seconds = 0;
   let callUnsubscribe = null;
   let signalUnsubscribe = null;
-  let isCallActive = false;
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -215,12 +214,10 @@
         }
       } catch (e) { console.log(e); }
 
-      // Jika role adalah 'receiver' dan status masih 'ringing', tampilkan layar masuk
       const callDoc = await getDoc(doc(db, "calls", callId));
       if (role === 'receiver' && callDoc.exists() && callDoc.data().status === "ringing") {
         document.getElementById('incoming-screen').classList.remove('hidden');
       } else {
-        // Jika caller, atau receiver yang sudah accept, langsung aktifkan panggilan
         startActiveCall();
       }
     } else {
@@ -242,11 +239,9 @@
   };
 
   async function startActiveCall() {
-    isCallActive = true;
     document.getElementById('active-call-ui').style.display = 'flex';
     document.getElementById('local-video-container').style.display = 'block';
 
-    // Timer
     timerInterval = setInterval(() => {
       seconds++;
       const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -254,7 +249,6 @@
       document.getElementById('timer').innerText = `${mins}:${secs}`;
     }, 1000);
 
-    // Dengarkan jika panggilan diakhiri
     callUnsubscribe = onSnapshot(doc(db, "calls", callId), (docSnap) => {
       if (docSnap.exists() && docSnap.data().status === "ended") cleanupAndExit();
     });
@@ -266,7 +260,6 @@
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Minta izin kamera & mikrofon
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } });
       localVideo.srcObject = localStream;
       
@@ -278,13 +271,24 @@
         console.log("ICE State:", pc.iceConnectionState);
       };
 
+      // === PERBAIKAN: Paksa putar video remote ===
       pc.ontrack = (event) => {
+        console.log("Menerima remote track:", event.track.kind);
+        
         if (!remoteStream) {
           remoteStream = new MediaStream();
           remoteVideo.srcObject = remoteStream;
         }
         remoteStream.addTrack(event.track);
-        remoteVideo.play().catch(e => console.log(e));
+        
+        // Trik paksa putar
+        remoteVideo.play().then(() => {
+          console.log("Video remote berhasil diputar");
+        }).catch(e => {
+          console.log("Gagal autoplay video:", e);
+          // Jika gagal, coba lagi saat pengguna menyentuh layar
+          document.body.addEventListener('click', () => remoteVideo.play(), { once: true });
+        });
       };
 
       pc.onicecandidate = (event) => {
@@ -351,7 +355,7 @@
 
     } catch (error) {
       console.error("Gagal memulai Video Call:", error);
-      alert("Gagal mengakses kamera/mikrofon.");
+      alert("Gagal mengakses kamera/mikrofon. Pastikan Anda memberikan izin.");
     }
   }
 
