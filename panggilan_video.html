@@ -18,10 +18,7 @@
   .video-container { position: relative; width: 100%; height: 100vh; max-width: 500px; background: #000; overflow: hidden; }
 
   /* Video Lawan Bicara (Full Screen) */
-  .remote-video {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    object-fit: cover; z-index: 1; background: #1e1b4b;
-  }
+  .remote-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; background: #1e1b4b; }
 
   /* Overlay UI */
   .video-overlay {
@@ -30,7 +27,6 @@
     z-index: 2; display: flex; flex-direction: column; justify-content: space-between; padding: 40px 20px;
   }
 
-  /* Info Penelepon */
   .call-info { text-align: center; margin-top: 20px; }
   .call-name { font-size: 24px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
   .call-timer { font-size: 14px; color: var(--text-muted); margin-top: 4px; font-variant-numeric: tabular-nums; display: flex; justify-content: center; align-items: center; gap: 6px; }
@@ -44,7 +40,7 @@
     border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.5);
     object-fit: cover; overflow: hidden;
   }
-  .local-video video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); /* Mirror effect */ }
+  .local-video video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 
   /* Tombol Kontrol */
   .controls { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; z-index: 10; }
@@ -62,6 +58,29 @@
   .btn-end .btn-icon span { transform: rotate(-135deg); }
   .btn-end:active .btn-icon { transform: rotate(135deg) scale(0.9); }
   .btn-label { font-size: 11px; color: rgba(255,255,255,0.8); font-weight: 500; }
+
+  /* === LAYAR PANGGILAN MASUK (Untuk Penerima) === */
+  #incoming-screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1e1b4b 0%, #0F0A1A 100%);
+    z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 60px 20px;
+  }
+  #incoming-screen.hidden { display: none; }
+  
+  .incoming-avatar {
+    width: 150px; height: 150px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--violet-500), var(--violet-600));
+    display: flex; justify-content: center; align-items: center;
+    font-size: 60px; font-weight: 700; margin-bottom: 20px;
+    box-shadow: 0 0 40px rgba(124, 58, 237, 0.5);
+    animation: pulseIncoming 2s infinite;
+  }
+  @keyframes pulseIncoming { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  
+  .incoming-name { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .incoming-text { font-size: 16px; color: var(--text-muted); margin-bottom: 40px; }
+  
+  .incoming-actions { display: flex; gap: 60px; margin-bottom: 40px; }
 </style>
 </head>
 <body>
@@ -70,14 +89,14 @@
   <!-- Video Lawan Bicara -->
   <video id="remote-video" class="remote-video" autoplay playsinline></video>
 
-  <!-- Overlay UI -->
-  <div class="video-overlay">
+  <!-- Overlay UI (Untuk Penelepon / Saat Panggilan Aktif) -->
+  <div class="video-overlay" id="active-call-ui" style="display: none;">
     <div class="call-info">
       <div class="call-name" id="other-name">Memuat...</div>
       <div class="call-timer"><span class="status-dot"></span> <span id="timer">00:00</span></div>
     </div>
 
-    <div></div> <!-- Spacer -->
+    <div></div>
 
     <div class="controls">
       <div class="action-btn" onclick="toggleMute(this)">
@@ -96,8 +115,28 @@
   </div>
 
   <!-- Video Diri Sendiri (Kecil) -->
-  <div class="local-video">
+  <div class="local-video" id="local-video-container" style="display: none;">
     <video id="local-video" autoplay playsinline muted></video>
+  </div>
+
+  <!-- === LAYAR PANGGILAN MASUK (Hanya muncul untuk Penerima) === -->
+  <div id="incoming-screen" class="hidden">
+    <div style="text-align: center; margin-top: 40px;">
+      <div class="incoming-text">Panggilan Video Masuk...</div>
+      <div class="incoming-avatar" id="incoming-avatar">?</div>
+      <div class="incoming-name" id="incoming-name">Memuat...</div>
+    </div>
+
+    <div class="incoming-actions">
+      <div class="action-btn" onclick="rejectCall()">
+        <div class="btn-icon" style="background: var(--red); width: 72px; height: 72px; transform: rotate(135deg); border: none;"><span style="transform: rotate(-135deg);">📞</span></div>
+        <div class="btn-label">Tolak</div>
+      </div>
+      <div class="action-btn" onclick="acceptCall()">
+        <div class="btn-icon" style="background: var(--green); width: 72px; height: 72px; border: none;">📹</div>
+        <div class="btn-label">Terima</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -119,21 +158,23 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
+  // KONFIGURASI TURN SERVER (GANTI DENGAN MILIK ANDA)
   const servers = {
     iceServers: [
       { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
       {
         urls: "turn:global.relay.metered.ca:80",
-        username: "c9100554b093206f07dc09bc", // <--- GANTI INI
-        credential: "qRh2abSlo1bajF9w" // <--- GANTI INI
+        username: "USERNAME_METERED_ANDA",
+        credential: "PASSWORD_METERED_ANDA"
       },
       {
         urls: "turn:global.relay.metered.ca:443",
-        username: "c9100554b093206f07dc09bc", // <--- GANTI INI
-        credential: "qRh2abSlo1bajF9w" // <--- GANTI INI
+        username: "USERNAME_METERED_ANDA",
+        credential: "PASSWORD_METERED_ANDA"
       }
     ]
   };
+
   let pc = new RTCPeerConnection(servers);
   let localStream = null;
   let remoteStream = null;
@@ -148,18 +189,12 @@
   let seconds = 0;
   let callUnsubscribe = null;
   let signalUnsubscribe = null;
+  let isCallActive = false;
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
       
-      timerInterval = setInterval(() => {
-        seconds++;
-        const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const secs = (seconds % 60).toString().padStart(2, '0');
-        document.getElementById('timer').innerText = `${mins}:${secs}`;
-      }, 1000);
-
       try {
         const callDoc = await getDoc(doc(db, "calls", callId));
         if (callDoc.exists()) {
@@ -168,23 +203,66 @@
           const otherDoc = await getDoc(doc(db, "users", otherId));
           if (otherDoc.exists()) {
             const otherData = otherDoc.data();
-            document.getElementById('other-name').innerText = otherData.displayName || "Kontak";
+            const name = otherData.displayName || "Kontak";
+            document.getElementById('other-name').innerText = name;
+            document.getElementById('incoming-name').innerText = name;
+            document.getElementById('incoming-avatar').innerText = name.charAt(0).toUpperCase();
+            if (otherData.photoURL) {
+              document.getElementById('incoming-avatar').style.background = "transparent";
+              document.getElementById('incoming-avatar').innerHTML = `<img src="${otherData.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            }
           }
         }
       } catch (e) { console.log(e); }
 
-      await startVideoCall();
-
-      callUnsubscribe = onSnapshot(doc(db, "calls", callId), (docSnap) => {
-        if (docSnap.exists() && docSnap.data().status === "ended") cleanupAndExit();
-      });
-
+      // Jika role adalah 'receiver' dan status masih 'ringing', tampilkan layar masuk
+      const callDoc = await getDoc(doc(db, "calls", callId));
+      if (role === 'receiver' && callDoc.exists() && callDoc.data().status === "ringing") {
+        document.getElementById('incoming-screen').classList.remove('hidden');
+      } else {
+        // Jika caller, atau receiver yang sudah accept, langsung aktifkan panggilan
+        startActiveCall();
+      }
     } else {
       window.location.href = "vio-login.html";
     }
   });
 
-  async function startVideoCall() {
+  window.acceptCall = async () => {
+    document.getElementById('incoming-screen').classList.add('hidden');
+    try {
+      await updateDoc(doc(db, "calls", callId), { status: "accepted" });
+      startActiveCall();
+    } catch (e) { console.log(e); }
+  };
+
+  window.rejectCall = async () => {
+    try { await updateDoc(doc(db, "calls", callId), { status: "rejected" }); } catch (e) { console.log(e); }
+    window.location.href = "index.html";
+  };
+
+  async function startActiveCall() {
+    isCallActive = true;
+    document.getElementById('active-call-ui').style.display = 'flex';
+    document.getElementById('local-video-container').style.display = 'block';
+
+    // Timer
+    timerInterval = setInterval(() => {
+      seconds++;
+      const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const secs = (seconds % 60).toString().padStart(2, '0');
+      document.getElementById('timer').innerText = `${mins}:${secs}`;
+    }, 1000);
+
+    // Dengarkan jika panggilan diakhiri
+    callUnsubscribe = onSnapshot(doc(db, "calls", callId), (docSnap) => {
+      if (docSnap.exists() && docSnap.data().status === "ended") cleanupAndExit();
+    });
+
+    await startWebRTC();
+  }
+
+  async function startWebRTC() {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -200,7 +278,6 @@
         console.log("ICE State:", pc.iceConnectionState);
       };
 
-      // Tangani video/audio masuk
       pc.ontrack = (event) => {
         if (!remoteStream) {
           remoteStream = new MediaStream();
@@ -274,7 +351,7 @@
 
     } catch (error) {
       console.error("Gagal memulai Video Call:", error);
-      alert("Gagal mengakses kamera/mikrofon. Pastikan Anda memberikan izin.");
+      alert("Gagal mengakses kamera/mikrofon.");
     }
   }
 
@@ -295,28 +372,16 @@
   };
 
   window.switchCamera = async (btn) => {
-    // Logika sederhana untuk ganti kamera depan/belakang (hanya berfungsi di HP)
     try {
       const currentFacingMode = localStream.getVideoTracks()[0].getSettings().facingMode;
       const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-      
-      const newStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: newFacingMode }, 
-        audio: true 
-      });
-      
-      // Hentikan stream lama
+      const newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: newFacingMode }, audio: true });
       localStream.getTracks().forEach(track => track.stop());
-      
-      // Ganti stream
       localStream = newStream;
       localVideo.srcObject = localStream;
-      
-      // Ganti track di peer connection
       const videoTrack = localStream.getVideoTracks()[0];
       const sender = pc.getSenders().find(s => s.track.kind === 'video');
       if (sender) sender.replaceTrack(videoTrack);
-      
     } catch (e) { console.log("Gagal ganti kamera:", e); }
   };
 
