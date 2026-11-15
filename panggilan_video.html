@@ -31,6 +31,11 @@
   .status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulseDot 2s infinite; }
   @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
 
+  /* ALAT DEBUG VIDEO */
+  #debug-video {
+    font-size: 11px; color: yellow; margin-top: 8px; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 8px; display: inline-block;
+  }
+
   .local-video {
     position: absolute; top: 100px; right: 20px; width: 100px; height: 140px;
     background: #2d1b4e; border-radius: 16px; z-index: 10;
@@ -81,16 +86,13 @@
 <body>
 
 <div class="video-container">
-  <!-- Video Lawan Bicara -->
   <video id="remote-video" class="remote-video" autoplay playsinline muted></video>
 
-  <!-- Overlay UI -->
   <div class="video-overlay" id="active-call-ui" style="display: none;">
     <div class="call-info">
       <div class="call-name" id="other-name">Memuat...</div>
       <div class="call-timer"><span class="status-dot"></span> <span id="timer">00:00</span></div>
-      <!-- ALAT DEBUG VIDEO -->
-      <div id="debug-video" style="font-size: 11px; color: yellow; margin-top: 8px; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 8px; display: inline-block;">Video: Menunggu...</div>
+      <div id="debug-video">Video: Menunggu...</div>
     </div>
 
     <div></div>
@@ -111,12 +113,10 @@
     </div>
   </div>
 
-  <!-- Video Diri Sendiri -->
   <div class="local-video" id="local-video-container" style="display: none;">
     <video id="local-video" autoplay playsinline muted></video>
   </div>
 
-  <!-- LAYAR PANGGILAN MASUK -->
   <div id="incoming-screen" class="hidden">
     <div style="text-align: center; margin-top: 40px;">
       <div class="incoming-text">Panggilan Video Masuk...</div>
@@ -155,19 +155,18 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // TURN SERVER (PASTIKAN SUDAH DIISI)
   const servers = {
     iceServers: [
       { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
       {
         urls: "turn:global.relay.metered.ca:80",
-        username: "c9100554b093206f07dc09bc",
-        credential: "qRh2abSlo1bajF9w"
+        username: "c9100554b093206f07dc09bc", // <--- GANTI
+        credential: "qRh2abSlo1bajF9w" // <--- GANTI
       },
       {
         urls: "turn:global.relay.metered.ca:443",
-        username: "c9100554b093206f07dc09bc",
-        credential: "qRh2abSlo1bajF9w"
+        username: "c9100554b093206f07dc09bc", // <--- GANTI
+        credential: "qRh2abSlo1bajF9w" // <--- GANTI
       }
     ]
   };
@@ -255,9 +254,19 @@
 
   async function startWebRTC() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Jeda 2 detik (khusus video)
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } });
+      // Paksa minta kamera & mikrofon
+      localStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: true, 
+        video: { 
+          facingMode: "user",
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        } 
+      });
+      
       localVideo.srcObject = localStream;
       
       localStream.getTracks().forEach(track => {
@@ -268,7 +277,7 @@
         console.log("ICE State:", pc.iceConnectionState);
       };
 
-      // === ALAT DEBUG VIDEO ===
+      // Alat Debug Video
       pc.ontrack = (event) => {
         console.log("Menerima track:", event.track.kind);
         document.getElementById('debug-video').innerText = `Menerima: ${event.track.kind}`;
@@ -294,7 +303,6 @@
           }, 3000);
         }
       };
-      // ========================
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
@@ -360,7 +368,7 @@
 
     } catch (error) {
       console.error("Gagal memulai Video Call:", error);
-      alert("Gagal mengakses kamera/mikrofon. Pastikan Anda memberikan izin.");
+      alert("Gagal mengakses kamera: " + error.message);
     }
   }
 
