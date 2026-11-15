@@ -17,10 +17,8 @@
   
   .video-container { position: relative; width: 100%; height: 100vh; max-width: 500px; background: #000; overflow: hidden; }
 
-  /* Video Lawan Bicara (Full Screen) */
   .remote-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; background: #1e1b4b; }
 
-  /* Overlay UI */
   .video-overlay {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.8) 100%);
@@ -33,7 +31,6 @@
   .status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulseDot 2s infinite; }
   @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
 
-  /* Video Diri Sendiri (PIP) */
   .local-video {
     position: absolute; top: 100px; right: 20px; width: 100px; height: 140px;
     background: #2d1b4e; border-radius: 16px; z-index: 10;
@@ -42,7 +39,6 @@
   }
   .local-video video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 
-  /* Tombol Kontrol */
   .controls { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; z-index: 10; }
   .action-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
   .btn-icon {
@@ -59,7 +55,6 @@
   .btn-end:active .btn-icon { transform: rotate(135deg) scale(0.9); }
   .btn-label { font-size: 11px; color: rgba(255,255,255,0.8); font-weight: 500; }
 
-  /* === LAYAR PANGGILAN MASUK (Untuk Penerima) === */
   #incoming-screen {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: linear-gradient(135deg, #1e1b4b 0%, #0F0A1A 100%);
@@ -86,7 +81,7 @@
 <body>
 
 <div class="video-container">
-  <!-- Video Lawan Bicara (Ditambahkan 'muted' agar autoplay berhasil) -->
+  <!-- Video Lawan Bicara -->
   <video id="remote-video" class="remote-video" autoplay playsinline muted></video>
 
   <!-- Overlay UI -->
@@ -94,6 +89,8 @@
     <div class="call-info">
       <div class="call-name" id="other-name">Memuat...</div>
       <div class="call-timer"><span class="status-dot"></span> <span id="timer">00:00</span></div>
+      <!-- ALAT DEBUG VIDEO -->
+      <div id="debug-video" style="font-size: 11px; color: yellow; margin-top: 8px; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 8px; display: inline-block;">Video: Menunggu...</div>
     </div>
 
     <div></div>
@@ -119,7 +116,7 @@
     <video id="local-video" autoplay playsinline muted></video>
   </div>
 
-  <!-- === LAYAR PANGGILAN MASUK === -->
+  <!-- LAYAR PANGGILAN MASUK -->
   <div id="incoming-screen" class="hidden">
     <div style="text-align: center; margin-top: 40px;">
       <div class="incoming-text">Panggilan Video Masuk...</div>
@@ -271,9 +268,10 @@
         console.log("ICE State:", pc.iceConnectionState);
       };
 
-      // === PERBAIKAN: Paksa putar video remote ===
+      // === ALAT DEBUG VIDEO ===
       pc.ontrack = (event) => {
-        console.log("Menerima remote track:", event.track.kind);
+        console.log("Menerima track:", event.track.kind);
+        document.getElementById('debug-video').innerText = `Menerima: ${event.track.kind}`;
         
         if (!remoteStream) {
           remoteStream = new MediaStream();
@@ -281,15 +279,22 @@
         }
         remoteStream.addTrack(event.track);
         
-        // Trik paksa putar
-        remoteVideo.play().then(() => {
-          console.log("Video remote berhasil diputar");
-        }).catch(e => {
-          console.log("Gagal autoplay video:", e);
-          // Jika gagal, coba lagi saat pengguna menyentuh layar
-          document.body.addEventListener('click', () => remoteVideo.play(), { once: true });
-        });
+        if (event.track.kind === 'video') {
+          document.getElementById('debug-video').innerText = "Video track diterima. Menunggu render...";
+          remoteVideo.play().catch(e => console.log(e));
+          
+          setTimeout(() => {
+            if (remoteVideo.videoWidth > 0) {
+              document.getElementById('debug-video').innerText = `Video OK (${remoteVideo.videoWidth}x${remoteVideo.videoHeight})`;
+              document.getElementById('debug-video').style.color = "lightgreen";
+            } else {
+              document.getElementById('debug-video').innerText = "Video track ada, tapi resolusi 0. Kamera lawan bermasalah.";
+              document.getElementById('debug-video').style.color = "red";
+            }
+          }, 3000);
+        }
       };
+      // ========================
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
