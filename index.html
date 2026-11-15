@@ -159,7 +159,7 @@
   let currentUser = null;
   let chatDataStore = [];
   let currentTab = 'semua';
-  let callListenerUnsubscribe = null; // Untuk menghentikan pendengar panggilan
+  let callListenerUnsubscribe = null;
 
   window.switchTab = (tab) => {
     currentTab = tab;
@@ -190,16 +190,14 @@
 
       await initChatList();
       listenToGroupUnread(); 
-      listenToIncomingCalls(); // <--- MEMANGGIL FUNGSI PENDENGAR PANGGILAN
+      listenToIncomingCalls();
       
     } else {
       setTimeout(() => { if (!auth.currentUser) window.location.href = "vio-login.html"; }, 1500);
     }
   });
 
-  // === FUNGSI MENDENGARKAN PANGGILAN MASUK ===
   function listenToIncomingCalls() {
-    // Dengarkan panggilan yang receiverId-nya adalah user ini dan statusnya masih "ringing"
     const q = query(
       collection(db, "calls"), 
       where("receiverId", "==", currentUser.uid),
@@ -209,17 +207,22 @@
     callListenerUnsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
-          // Ada panggilan masuk baru!
           const callId = change.doc.id;
-          // Hentikan pendengar sebentar agar tidak dobel
+          const callData = change.doc.data();
+          
           if (callListenerUnsubscribe) callListenerUnsubscribe(); 
-          // Arahkan ke halaman panggilan masuk
-          window.location.href = `panggilan_masuk.html?callId=${callId}`;
+          
+          const callType = callData.callType || 'audio';
+          
+          if (callType === 'video') {
+            window.location.href = `panggilan_video.html?callId=${callId}&role=receiver`;
+          } else {
+            window.location.href = `panggilan_masuk.html?callId=${callId}`;
+          }
         }
       });
     });
   }
-  // ============================================
 
   async function initChatList() {
     const container = document.getElementById('dynamic-contacts');
