@@ -64,19 +64,12 @@
   .input-wrapper { flex: 1; background: var(--violet-100); border-radius: 24px; display: flex; align-items: center; padding: 4px 6px 4px 16px; }
   .input-wrapper input { flex: 1; border: none; background: transparent; outline: none; font-size: 14.5px; padding: 10px 0; color: var(--text); font-family: inherit; }
   .send-btn { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg, var(--orange-500), var(--orange-700)); border: none; color: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(249, 115, 22, 0.4); }
-
-  /* ALAT DEBUG */
-  #debug-box {
-    position: fixed; bottom: 0; left: 0; background: black; color: #00FF00; font-size: 10px; padding: 5px; z-index: 99999; font-family: monospace; pointer-events: none; opacity: 0.8;
-  }
 </style>
 </head>
 <body>
 
-<div id="debug-box">Memuat...</div>
-
 <div class="phone">
-  <!-- HEADER GRUP YANG BENAR -->
+  <!-- HEADER GRUP -->
   <div class="chat-header">
     <div class="back-btn" onclick="window.location.href='index.html'">‹</div>
     <div class="avatar">👨‍👩‍👧‍👦</div>
@@ -109,14 +102,6 @@
 </div>
 
 <script type="module">
-  // ALAT DEBUG
-  const debugBox = document.getElementById('debug-box');
-  function logDebug(msg) {
-    console.log(msg);
-    debugBox.innerText = msg;
-  }
-  // -----------------
-
   // FUNGSI AUDIO
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   const audioCtx = new AudioContext();
@@ -161,7 +146,7 @@
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
-      logDebug("User Login: " + user.email);
+      console.log("User Login: " + user.email);
       
       const readRef = doc(db, "groups", GROUP_ID, "read_status", currentUser.uid);
       setDoc(readRef, { lastReadAt: serverTimestamp() }, { merge: true }).catch(e => console.log(e));
@@ -257,25 +242,21 @@
           const userDoc = await getDoc(doc(db, "users", currentUser.uid));
           const userData = userDoc.exists() ? userDoc.data() : {};
           
-          logDebug("Mengirim sinyal typing...");
           await setDoc(typingRef, { 
             isTyping: true, 
             name: userData.displayName || currentUser.email.split('@')[0],
             photo: userData.photoURL || ""
           });
-          logDebug("Sinyal typing terkirim!");
         } catch (e) {
-          logDebug("Error Typing: " + e.message);
+          console.log("Error Typing: " + e.message);
         }
 
         clearTimeout(typingTimeout);
         typingTimeout = setTimeout(() => {
           deleteDoc(typingRef).catch(()=>{}); 
-          logDebug("Sinyal typing dihapus (timeout)");
         }, 1500);
       } else {
         deleteDoc(typingRef).catch(()=>{});
-        logDebug("Input kosong, hapus sinyal");
       }
     });
   }
@@ -286,8 +267,6 @@
     const infoContainer = document.getElementById('typing-info-container');
     const nameEl = document.getElementById('typing-name');
     
-    logDebug("Memulai pendengar typing...");
-    
     const q = query(collection(db, "groups", GROUP_ID, "typing"));
     
     onSnapshot(q, (snapshot) => {
@@ -297,8 +276,6 @@
           typers.push(doc.data());
         }
       });
-
-      logDebug(`Mendengar: ${typers.length} orang mengetik`);
 
       if (typers.length === 0) {
         typingContainer.style.display = 'none';
